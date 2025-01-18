@@ -1,3 +1,4 @@
+import dataclasses
 import datetime
 import pathlib
 from pathlib import Path
@@ -22,6 +23,26 @@ from esque.io.serializers.raw import RawSerializerConfig
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_timestamp, yield_only_matching_messages
+from dataclasses import dataclass
+
+
+@dataclass
+class ConsumeOptions:
+    state: State
+    topic: str
+    from_context: str
+    number: Optional[int]
+    match: str
+    last: bool
+    avro: bool
+    binary: bool
+    directory: str
+    consumergroup: str
+    preserve_order: bool
+    write_to_stdout: bool
+    pretty_print: bool
+    key_encoding: str
+    value_encoding: str
 
 
 @click.command("consume")
@@ -53,8 +74,8 @@ from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_t
 @click.option(
     "--last/--first",
     help="Start consuming from the earliest or latest offset in the topic."
-    "Latest means at the end of the topic _not including_ the last message(s),"
-    "so if no new data is coming in nothing will be consumed.",
+         "Latest means at the end of the topic _not including_ the last message(s),"
+         "so if no new data is coming in nothing will be consumed.",
     default=False,
 )
 @click.option(
@@ -68,9 +89,23 @@ from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_t
     "-b",
     "--binary",
     help="Set this flag if the topic contains binary data. Or the data should not be (de-)serialized. "
-    "This flag is mutually exclusive with the --avro flag",
+         "This flag is mutually exclusive with the --avro flag",
     default=False,
     is_flag=True,
+)
+@click.option(
+    "-k",
+    "--key-encoding",
+    help="Set this flag to set encoding for key"
+         "This flag is mutually exclusive with the --binary flag",
+    type=click.Choice(['binary', 'utf8'], case_sensitive=False)
+)
+@click.option(
+    "-v",
+    "--value-encoding",
+    help="Set this flag to set encoding for value"
+         "This flag is mutually exclusive with the --binary flag",
+    type=click.Choice(['binary', 'utf8'], case_sensitive=False)
 )
 @click.option(
     "-c",
@@ -85,8 +120,8 @@ from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_t
 @click.option(
     "--preserve-order",
     help="Preserve the order of messages, regardless of their partition. "
-    "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
-    "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
+         "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
+         "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
     default=False,
     is_flag=True,
 )
@@ -95,26 +130,12 @@ from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_t
     "-p",
     "--pretty-print",
     help="Use multiple lines to represent each kafka message instead of putting every JSON object into a single "
-    "line. Only has an effect when consuming to stdout.",
+         "line. Only has an effect when consuming to stdout.",
     default=False,
     is_flag=True,
 )
 @default_options
-def consume(
-    state: State,
-    topic: str,
-    from_context: str,
-    number: Optional[int],
-    match: str,
-    last: bool,
-    avro: bool,
-    binary: bool,
-    directory: str,
-    consumergroup: str,
-    preserve_order: bool,
-    write_to_stdout: bool,
-    pretty_print: bool,
-):
+def consume(*args, **kwargs):
     """Consume messages from a topic.
 
     Read messages from a given topic in a given context. These messages can either be written
@@ -143,42 +164,41 @@ def consume(
     # Extract binary data from keys (depending on the data this could mess up your console)
     esque consume --stdout --binary TOPIC | jq '.key | @base64d'
     """
-    if not from_context:
-        from_context = state.config.current_context
-    state.config.context_switch(from_context)
+    kwargs["state"] = args[0]
+    consumer_options = ConsumeOptions(**kwargs)
 
-    if not write_to_stdout and not directory:
-        directory = Path() / "messages" / topic / datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    if not consumer_options.write_to_stdout and not consumer_options.directory:
+        directory = Path() / "messages" / consumer_options.topic / datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    if binary and avro:
+    if consumer_options.binary and consumer_options.avro:
         raise ValueError("Cannot set data to be interpreted as binary AND avro.")
 
     builder = PipelineBuilder()
 
-    input_message_serializer = create_input_serializer(avro, binary, state)
+    input_message_serializer = create_input_serializer(consumer_options)
     builder.with_input_message_serializer(input_message_serializer)
 
-    input_handler = create_input_handler(consumergroup, from_context, topic)
+    input_handler = create_input_handler(consumer_options)
     builder.with_input_handler(input_handler)
 
-    output_handler = create_output_handler(directory, write_to_stdout, binary, pretty_print)
+    output_handler = create_output_handler(directory, consumer_options)
     builder.with_output_handler(output_handler)
 
-    output_message_serializer = create_output_message_serializer(write_to_stdout, directory, avro, binary)
+    output_message_serializer = create_output_message_serializer(consumer_options)
     builder.with_output_message_serializer(output_message_serializer)
 
-    if last:
+    if consumer_options.last:
         start = KafkaHandler.OFFSET_AFTER_LAST_MESSAGE
     else:
         start = KafkaHandler.OFFSET_AT_FIRST_MESSAGE
 
-    builder.with_range(start=start, limit=number)
+    builder.with_range(start=start, limit=consumer_options.number)
 
-    if preserve_order:
+    if consumer_options.preserve_order:
         topic_data = Cluster().topic_controller.get_cluster_topic(topic, retrieve_partition_watermarks=False)
         builder.with_stream_decorator(yield_messages_sorted_by_timestamp(len(topic_data.partitions)))
 
-    if match:
+    if consumer_options.match:
         builder.with_stream_decorator(yield_only_matching_messages(match))
 
     counter, counter_decorator = event_counter()
@@ -188,34 +208,37 @@ def consume(
     pipeline = builder.build()
     pipeline.run_pipeline()
 
-    if not write_to_stdout:
-        if counter.message_count == number:
+    if not consumer_options.write_to_stdout:
+        if counter.message_count == consumer_options.number:
             click.echo(blue_bold(str(counter.message_count)) + " messages consumed.")
         else:
             click.echo(
                 "Only found "
                 + bold(str(counter.message_count))
                 + " messages in topic, out of "
-                + blue_bold(str(number))
+                + blue_bold(str(consumer_options.number))
                 + " required."
             )
 
 
-def create_input_handler(consumergroup, from_context, topic):
-    if not consumergroup:
-        consumergroup = ESQUE_GROUP_ID
+def create_input_handler(consumer_options):
+    consumer_group = consumer_options.consumergroup
+    if not consumer_options.consumergroup:
+        consumer_group = ESQUE_GROUP_ID
     input_handler = KafkaHandler(
-        KafkaHandlerConfig(scheme="kafka", host=from_context, path=topic, consumer_group_id=consumergroup)
+        KafkaHandlerConfig(scheme="kafka", host=consumergroup.from_context, path=consumer_group.topic,
+                           consumer_group_id=consumer_options.consumergroup)
     )
     return input_handler
 
 
-def create_input_serializer(avro, binary, state):
-    if binary:
+def create_input_serializer(consumer_options: ConsumeOptions):
+    if consumer_options.binary:
         input_serializer = RawSerializer(RawSerializerConfig(scheme="raw"))
-    elif avro:
+    elif consumer_options.avro:
         input_serializer = RegistryAvroSerializer(
-            RegistryAvroSerializerConfig(scheme="reg-avro", schema_registry_uri=state.config.schema_registry)
+            RegistryAvroSerializerConfig(scheme="reg-avro",
+                                         schema_registry_uri=consumer_options.state.config.schema_registry)
         )
     else:
         input_serializer = StringSerializer(StringSerializerConfig(scheme="str"))
@@ -223,12 +246,12 @@ def create_input_serializer(avro, binary, state):
     return input_message_serializer
 
 
-def create_output_handler(directory: pathlib.Path, write_to_stdout: bool, binary: bool, pretty_print: bool):
-    if directory and write_to_stdout:
+def create_output_handler(directory: pathlib.Path, consumer_options: ConsumeOptions):
+    if directory and consumer_options.write_to_stdout:
         raise ValueError("Cannot write to a directory and STDOUT, please pick one!")
-    elif write_to_stdout:
-        encoding = "base64" if binary else "utf-8"
-        pretty_print = "1" if pretty_print else ""
+    elif consumer_options.write_to_stdout:
+        encoding = "base64" if consumer_options.binary else "utf-8"
+        pretty_print = "1" if consumer_options.pretty_print else ""
         output_handler = PipeHandler(
             PipeHandlerConfig(
                 scheme="pipe",
@@ -246,7 +269,7 @@ def create_output_handler(directory: pathlib.Path, write_to_stdout: bool, binary
 
 
 def create_output_message_serializer(
-    write_to_stdout: bool, directory: pathlib.Path, avro: bool, binary: bool
+        write_to_stdout: bool, directory: pathlib.Path, avro: bool, binary: bool
 ) -> MessageSerializer:
     if avro and write_to_stdout:
         serializer = JsonSerializer(JsonSerializerConfig(scheme="json"))
