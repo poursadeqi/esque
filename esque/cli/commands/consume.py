@@ -37,15 +37,27 @@ class ConsumeOptions:
     avro: bool
     binary: bool
     directory: str
-    consumergroup: str
+    consumer_group: str
     preserve_order: bool
     write_to_stdout: bool
     pretty_print: bool
     key_encoding: str
     value_encoding: str
 
+    def __post_init__(self):
+        if self.binary and self.avro:
+            raise ValueError("Cannot set data to be interpreted as binary AND avro.")
+        if self.directory and self.write_to_stdout:
+            raise ValueError("Cannot write to a directory and STDOUT, please pick one!")
 
-@click.command("consume")
+    def get_key_encoding(self) -> str:
+        return self.key_encoding or "base64"
+
+    def get_value_encoding(self) -> str:
+        return self.value_encoding or "base64"
+
+
+@click.command("consume", context_settings={"help_option_names": ["-h", "--help"]})
 @click.argument("topic", shell_complete=list_topics)
 @click.option(
     "-d", "--directory", metavar="<directory>", help="Sets the directory to write the messages to.", type=click.STRING
@@ -86,30 +98,23 @@ class ConsumeOptions:
     is_flag=True,
 )
 @click.option(
-    "-b",
-    "--binary",
-    help="Set this flag if the topic contains binary data. Or the data should not be (de-)serialized. "
-         "This flag is mutually exclusive with the --avro flag",
-    default=False,
-    is_flag=True,
-)
-@click.option(
     "-k",
     "--key-encoding",
-    help="Set this flag to set encoding for key"
-         "This flag is mutually exclusive with the --binary flag",
-    type=click.Choice(['binary', 'utf8'], case_sensitive=False)
+    help="Set this flag to set encoding for key",
+    type=click.Choice(['base64', 'utf-8', 'hex', 'proto'], case_sensitive=False),
+    default="base64"
 )
 @click.option(
     "-v",
     "--value-encoding",
-    help="Set this flag to set encoding for value"
-         "This flag is mutually exclusive with the --binary flag",
-    type=click.Choice(['binary', 'utf8'], case_sensitive=False)
+    help="Set this flag to set encoding for value",
+    type=click.Choice(['base64', 'utf-8', 'hex', 'proto'], case_sensitive=False),
+    default="base64"
 )
 @click.option(
     "-c",
-    "--consumergroup",
+    "--consumer-group",
+    'consumer_group',
     metavar="<consumer_group>",
     help="Consumer group to store the offset in.",
     type=click.STRING,
@@ -167,11 +172,13 @@ def consume(*args, **kwargs):
     kwargs["state"] = args[0]
     consumer_options = ConsumeOptions(**kwargs)
 
+    if not consumer_options.from_context:
+        consumer_options.from_context = consumer_options.state.config.current_context
+    consumer_options.state.config.context_switch(consumer_options.from_context)
+
+    directory = consumer_options.directory
     if not consumer_options.write_to_stdout and not consumer_options.directory:
         directory = Path() / "messages" / consumer_options.topic / datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-    if consumer_options.binary and consumer_options.avro:
-        raise ValueError("Cannot set data to be interpreted as binary AND avro.")
 
     builder = PipelineBuilder()
 
@@ -184,7 +191,7 @@ def consume(*args, **kwargs):
     output_handler = create_output_handler(directory, consumer_options)
     builder.with_output_handler(output_handler)
 
-    output_message_serializer = create_output_message_serializer(consumer_options)
+    output_message_serializer = create_output_message_serializer(directory, consumer_options)
     builder.with_output_message_serializer(output_message_serializer)
 
     if consumer_options.last:
@@ -195,11 +202,12 @@ def consume(*args, **kwargs):
     builder.with_range(start=start, limit=consumer_options.number)
 
     if consumer_options.preserve_order:
-        topic_data = Cluster().topic_controller.get_cluster_topic(topic, retrieve_partition_watermarks=False)
+        topic_data = Cluster().topic_controller.get_cluster_topic(consumer_options.topic,
+                                                                  retrieve_partition_watermarks=False)
         builder.with_stream_decorator(yield_messages_sorted_by_timestamp(len(topic_data.partitions)))
 
     if consumer_options.match:
-        builder.with_stream_decorator(yield_only_matching_messages(match))
+        builder.with_stream_decorator(yield_only_matching_messages(consumer_options.match))
 
     counter, counter_decorator = event_counter()
 
@@ -221,13 +229,13 @@ def consume(*args, **kwargs):
             )
 
 
-def create_input_handler(consumer_options):
-    consumer_group = consumer_options.consumergroup
-    if not consumer_options.consumergroup:
+def create_input_handler(consumer_options: ConsumeOptions):
+    consumer_group = consumer_options.consumer_group
+    if not consumer_group:
         consumer_group = ESQUE_GROUP_ID
     input_handler = KafkaHandler(
-        KafkaHandlerConfig(scheme="kafka", host=consumergroup.from_context, path=consumer_group.topic,
-                           consumer_group_id=consumer_options.consumergroup)
+        KafkaHandlerConfig(scheme="kafka", host=consumer_options.from_context, path=consumer_options.topic,
+                           consumer_group_id=consumer_group)
     )
     return input_handler
 
@@ -247,18 +255,15 @@ def create_input_serializer(consumer_options: ConsumeOptions):
 
 
 def create_output_handler(directory: pathlib.Path, consumer_options: ConsumeOptions):
-    if directory and consumer_options.write_to_stdout:
-        raise ValueError("Cannot write to a directory and STDOUT, please pick one!")
-    elif consumer_options.write_to_stdout:
-        encoding = "base64" if consumer_options.binary else "utf-8"
+    if consumer_options.write_to_stdout:
         pretty_print = "1" if consumer_options.pretty_print else ""
         output_handler = PipeHandler(
             PipeHandlerConfig(
                 scheme="pipe",
                 host="stdout",
                 path="",
-                key_encoding=encoding,
-                value_encoding=encoding,
+                key_encoding=consumer_options.get_key_encoding("utf-8"),
+                value_encoding=consumer_options.get_value_encoding("utf-8"),
                 pretty_print=pretty_print,
             )
         )
@@ -269,15 +274,15 @@ def create_output_handler(directory: pathlib.Path, consumer_options: ConsumeOpti
 
 
 def create_output_message_serializer(
-        write_to_stdout: bool, directory: pathlib.Path, avro: bool, binary: bool
+        directory: pathlib.Path, consumer_options: ConsumeOptions
 ) -> MessageSerializer:
-    if avro and write_to_stdout:
+    if consumer_options.avro and consumer_options.write_to_stdout:
         serializer = JsonSerializer(JsonSerializerConfig(scheme="json"))
-    elif avro and not write_to_stdout:
+    elif consumer_options.avro and not consumer_options.write_to_stdout:
         serializer = RegistryAvroSerializer(
             RegistryAvroSerializerConfig(scheme="reg-avro", schema_registry_uri=f"path:///{directory}")
         )
-    elif binary:
+    elif consumer_options.binary:
         serializer = RawSerializer(RawSerializerConfig(scheme="raw"))
     else:
         serializer = StringSerializer(StringSerializerConfig(scheme="str"))

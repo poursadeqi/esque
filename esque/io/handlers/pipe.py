@@ -139,9 +139,9 @@ def embed(input_value: Optional[bytes], encoding: Union[str, ByteEncoding]) -> A
     if input_value is None:
         return None
     if encoding == ByteEncoding.UTF_8:
-        return input_value.decode(encoding="UTF-8")
+        return input_value.decode(encoding="UTF-8", errors="replace")
     elif encoding == ByteEncoding.BASE64:
-        return base64.b64encode(input_value).decode(encoding="UTF-8")
+        return base64.b64encode(input_value).decode(encoding="UTF-8", errors="replace")
     elif encoding == ByteEncoding.HEX:
         return input_value.hex()
 
