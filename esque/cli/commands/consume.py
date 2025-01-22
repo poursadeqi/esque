@@ -22,6 +22,7 @@ from esque.io.serializers.json import JsonSerializerConfig
 from esque.io.serializers.raw import RawSerializerConfig
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
+from esque.io.serializers.proto import ProtoSerializer, ProtoSerializerConfig
 from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_timestamp, yield_only_matching_messages
 from dataclasses import dataclass
 
@@ -41,16 +42,26 @@ class ConsumeOptions:
     pretty_print: bool
     key_encoding: str
     value_encoding: str
+    key_serializer: str
+    value_serializer: str
 
     def __post_init__(self):
         if self.directory and self.write_to_stdout:
             raise ValueError("Cannot write to a directory and STDOUT, please pick one!")
 
     def get_key_encoding(self) -> str:
-        return self.key_encoding or "base64"
+        if self.key_encoding is None:
+            return "base64"
+        if self.key_encoding == "str":
+            return "utf-8"
+        return self.key_encoding
 
     def get_value_encoding(self) -> str:
-        return self.value_encoding or "base64"
+        if self.value_encoding is None:
+            return "base64"
+        if self.value_encoding == "str":
+            return "utf-8"
+        return self.value_encoding
 
 
 @click.command("consume", context_settings={"help_option_names": ["-h", "--help"]})
@@ -90,15 +101,27 @@ class ConsumeOptions:
     "-k",
     "--key-encoding",
     help="Set this flag to set encoding for key",
-    type=click.Choice(['base64', 'utf-8', 'hex', 'proto', 'avro'], case_sensitive=False),
+    type=click.Choice(['base64', 'str', 'hex'], case_sensitive=False),
     default="base64"
 )
 @click.option(
     "-v",
     "--value-encoding",
     help="Set this flag to set encoding for value",
-    type=click.Choice(['base64', 'utf-8', 'hex', 'proto', 'avro'], case_sensitive=False),
+    type=click.Choice(['base64', 'str', 'hex'], case_sensitive=False),
     default="base64"
+)
+@click.option(
+    '-sk', '--key-serializer',
+    type=click.Choice(['none', 'avro', 'proto', 'sruct'], case_sensitive=False),
+    help='Specify deserialization for keys',
+    default="none",
+)
+@click.option(
+    '-sv', '--value-serializer',
+    type=click.Choice(['none', 'avro', 'proto', 'sruct'], case_sensitive=False),
+    help='Specify deserialization for keys',
+    default="none",
 )
 @click.option(
     "-c",
@@ -237,18 +260,6 @@ def create_input_serializer(consumer_options: ConsumeOptions):
                              value_serializer=value_input_serializer)
 
 
-def create_serializer(encoding: str, state: State):
-    if encoding == "base64":
-        return RawSerializer(RawSerializerConfig(scheme="raw"))
-    elif encoding == "avro":
-        return RegistryAvroSerializer(
-            RegistryAvroSerializerConfig(scheme="reg-avro",
-                                         schema_registry_uri=state.config.schema_registry)
-        )
-    # todo add proto serializer
-    return StringSerializer(StringSerializerConfig(scheme="str"))
-
-
 def create_output_handler(directory: pathlib.Path, consumer_options: ConsumeOptions):
     if consumer_options.write_to_stdout:
         pretty_print = "1" if consumer_options.pretty_print else ""
@@ -271,14 +282,38 @@ def create_output_handler(directory: pathlib.Path, consumer_options: ConsumeOpti
 def create_output_message_serializer(
         directory: pathlib.Path, consumer_options: ConsumeOptions
 ) -> MessageSerializer:
-    if consumer_options.avro and consumer_options.write_to_stdout:
+    key_serializer = create_output_serializer(consumer_options.key_serializer, consumer_options.get_key_encoding(),
+                                              consumer_options, directory)
+    val_serializer = create_output_serializer(consumer_options.value_serializer, consumer_options.get_value_encoding(),
+                                              consumer_options, directory)
+    return MessageSerializer(key_serializer=key_serializer,
+                             value_serializer=val_serializer)
+
+
+def create_serializer(encoding: str, state: State):
+    if encoding == "base64":
+        return RawSerializer(RawSerializerConfig(scheme="raw"))
+    elif encoding == "avro":
+        return RegistryAvroSerializer(
+            RegistryAvroSerializerConfig(scheme="reg-avro",
+                                         schema_registry_uri=state.config.schema_registry)
+        )
+    elif encoding == "proto":
+        return ProtoSerializer(ProtoSerializerConfig(scheme="proto"))
+    return StringSerializer(StringSerializerConfig(scheme="str"))
+
+
+def create_output_serializer(serializer: str, encoding: str, consumer_options: ConsumeOptions, directory):
+    if serializer == "avro" and consumer_options.write_to_stdout:
         serializer = JsonSerializer(JsonSerializerConfig(scheme="json"))
-    elif consumer_options.avro and not consumer_options.write_to_stdout:
+    elif serializer == "avro" and not consumer_options.write_to_stdout:
         serializer = RegistryAvroSerializer(
             RegistryAvroSerializerConfig(scheme="reg-avro", schema_registry_uri=f"path:///{directory}")
         )
-    elif consumer_options.binary:
+    elif serializer == "none" and encoding == "base64":
         serializer = RawSerializer(RawSerializerConfig(scheme="raw"))
+    elif serializer == "proto":
+        serializer = ProtoSerializer(ProtoSerializerConfig(scheme="proto"))
     else:
         serializer = StringSerializer(StringSerializerConfig(scheme="str"))
-    return MessageSerializer(key_serializer=serializer, value_serializer=serializer)
+    return serializer
