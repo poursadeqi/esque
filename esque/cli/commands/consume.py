@@ -65,38 +65,30 @@ class ConsumeOptions:
 @click.option(
     "--last/--first",
     help="Start consuming from the earliest or latest offset in the topic."
-         "Latest means at the end of the topic _not including_ the last message(s),"
-         "so if no new data is coming in nothing will be consumed.",
+    "Latest means at the end of the topic _not including_ the last message(s),"
+    "so if no new data is coming in nothing will be consumed.",
     default=False,
 )
+@click.option("--key-struct-format", help="Set this flag to set encoding for key", type=str)
+@click.option("--value-struct-format", help="Set this flag to set output encoding for value.", type=str)
 @click.option(
-    "--key-struct-format",
-    help="Set this flag to set encoding for key",
-    type=str
-)
-@click.option(
-    "--value-struct-format",
-    help="Set this flag to set output encoding for value.",
-    type=str
-)
-@click.option(
-    '-k',
-    '--key-serializer',
-    type=click.Choice(['raw', 'avro', 'proto', 'struct'], case_sensitive=False),
-    help='Specify deserialization for keys',
+    "-k",
+    "--key-serializer",
+    type=click.Choice(["raw", "avro", "proto", "struct"], case_sensitive=False),
+    help="Specify deserialization for keys",
     default="raw",
 )
 @click.option(
-    '-v',
-    '--value-serializer',
-    type=click.Choice(['raw', 'avro', 'proto', 'struct'], case_sensitive=False),
-    help='Specify deserialization for keys',
+    "-v",
+    "--value-serializer",
+    type=click.Choice(["raw", "avro", "proto", "struct"], case_sensitive=False),
+    help="Specify deserialization for keys",
     default="raw",
 )
 @click.option(
     "-c",
     "--consumer-group",
-    'consumer_group',
+    "consumer_group",
     metavar="<consumer_group>",
     help="Consumer group to store the offset in.",
     type=click.STRING,
@@ -107,8 +99,8 @@ class ConsumeOptions:
 @click.option(
     "--preserve-order",
     help="Preserve the order of messages, regardless of their partition. "
-         "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
-         "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
+    "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
+    "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
     default=False,
     is_flag=True,
 )
@@ -116,7 +108,7 @@ class ConsumeOptions:
     "-p",
     "--pretty-print",
     help="Use multiple lines to represent each kafka message instead of putting every JSON object into a single "
-         "line. Only has an effect when consuming to stdout.",
+    "line. Only has an effect when consuming to stdout.",
     default=False,
     is_flag=True,
 )
@@ -176,8 +168,9 @@ def consume(*args, **kwargs):
     builder.with_range(start=start, limit=consumer_options.number)
 
     if consumer_options.preserve_order:
-        topic_data = Cluster().topic_controller.get_cluster_topic(consumer_options.topic,
-                                                                  retrieve_partition_watermarks=False)
+        topic_data = Cluster().topic_controller.get_cluster_topic(
+            consumer_options.topic, retrieve_partition_watermarks=False
+        )
         builder.with_stream_decorator(yield_messages_sorted_by_timestamp(len(topic_data.partitions)))
 
     if consumer_options.match:
@@ -196,23 +189,24 @@ def create_input_handler(consumer_options: ConsumeOptions):
     if not consumer_group:
         consumer_group = ESQUE_GROUP_ID
     input_handler = KafkaHandler(
-        KafkaHandlerConfig(scheme="kafka", host=consumer_options.from_context, path=consumer_options.topic,
-                           consumer_group_id=consumer_group)
+        KafkaHandlerConfig(
+            scheme="kafka",
+            host=consumer_options.from_context,
+            path=consumer_options.topic,
+            consumer_group_id=consumer_group,
+        )
     )
     return input_handler
 
 
 def create_messages_serializer(consumer_options: ConsumeOptions) -> MessageSerializer:
     key_serializer = create_serializer(
-        consumer_options.key_serializer,
-        consumer_options.key_struct_format,
-        consumer_options
+        consumer_options.key_serializer, consumer_options.key_struct_format, consumer_options
     )
 
     val_serializer = create_serializer(
-        consumer_options.value_serializer,
-        consumer_options.value_struct_format,
-        consumer_options)
+        consumer_options.value_serializer, consumer_options.value_struct_format, consumer_options
+    )
 
     return MessageSerializer(key_serializer=key_serializer, value_serializer=val_serializer)
 
@@ -230,17 +224,13 @@ def create_output_handler(consumer_options: ConsumeOptions):
     )
 
 
-def create_serializer(
-        serializer: str,
-        struct_format: str,
-        consumer_options: ConsumeOptions):
+def create_serializer(serializer: str, struct_format: str, consumer_options: ConsumeOptions):
     config = consumer_options.state.config
     if serializer == "json":
         return JsonSerializer(JsonSerializerConfig(scheme="json"))
     elif serializer == "avro":
         return RegistryAvroSerializer(
-            RegistryAvroSerializerConfig(scheme="reg-avro",
-                                         schema_registry_uri=config.schema_registry)
+            RegistryAvroSerializerConfig(scheme="reg-avro", schema_registry_uri=config.schema_registry)
         )
     elif serializer == "raw":
         serializer = RawSerializer(RawSerializerConfig(scheme="raw"))
@@ -251,13 +241,13 @@ def create_serializer(
         serializer = ProtoSerializer(
             ProtoSerializerConfig(
                 scheme="proto",
-                protoc_py_path=proto_cfg.get('protoc_py_path'),
-                module_name=proto_cfg.get('module_name'),
-                class_name=proto_cfg.get('class_name'),
+                protoc_py_path=proto_cfg.get("protoc_py_path"),
+                module_name=proto_cfg.get("module_name"),
+                class_name=proto_cfg.get("class_name"),
             )
         )
     elif serializer == "struct":
-        serializer = StructSerializer(StructSerializerConfig(scheme='struct', struct_format=struct_format))
+        serializer = StructSerializer(StructSerializerConfig(scheme="struct", struct_format=struct_format))
     else:
         serializer = StringSerializer(StringSerializerConfig(scheme="str"))
     return serializer
