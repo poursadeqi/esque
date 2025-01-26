@@ -1,10 +1,9 @@
 import dataclasses
 import json
 import importlib
-from types import ModuleType
-from typing import Any, Optional
+from typing import Optional
 
-from esque.io.data_types import NoData, UnknownDataType
+from esque.io.data_types import UnknownDataType
 from esque.io.messages import Data
 from esque.io.serializers import SerializerConfig
 from esque.io.serializers.base import DataSerializer
@@ -47,5 +46,4 @@ class ProtoSerializer(DataSerializer[ProtoSerializerConfig]):
         message = self.config.get_message_class()()
         message.ParseFromString(raw_data)
 
-        data = MessageToDict(message, preserving_proto_field_name=True)
-        return Data(payload=(json.dumps(data)).encode(self.config.encoding), data_type=self.unknown_data_type)
+        return Data(payload=MessageToDict(message, preserving_proto_field_name=True), data_type=self.unknown_data_type)

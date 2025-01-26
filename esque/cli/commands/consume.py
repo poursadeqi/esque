@@ -1,19 +1,13 @@
-import dataclasses
-import datetime
-import pathlib
-from pathlib import Path
 from typing import Optional
 
 import click
 
 from esque.cli.autocomplete import list_consumergroups, list_contexts, list_topics
 from esque.cli.options import State, default_options
-from esque.cli.output import blue_bold, bold
 from esque.cluster import Cluster
 from esque.config import ESQUE_GROUP_ID
-from esque.io.handlers import KafkaHandler, PathHandler
+from esque.io.handlers import KafkaHandler
 from esque.io.handlers.kafka import KafkaHandlerConfig
-from esque.io.handlers.path import PathHandlerConfig
 from esque.io.handlers.pipe import PipeHandler, PipeHandlerConfig
 from esque.io.pipeline import PipelineBuilder
 from esque.io.serializers import JsonSerializer, RawSerializer, RegistryAvroSerializer, StringSerializer
@@ -23,6 +17,7 @@ from esque.io.serializers.raw import RawSerializerConfig
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.serializers.proto import ProtoSerializer, ProtoSerializerConfig
+from esque.io.serializers.struct import StructSerializer, StructSerializerConfig
 from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_timestamp, yield_only_matching_messages
 from dataclasses import dataclass
 
@@ -38,24 +33,10 @@ class ConsumeOptions:
     consumer_group: str
     preserve_order: bool
     pretty_print: bool
-    output_key_encoding: str
-    output_value_encoding: str
     key_serializer: str
     value_serializer: str
-
-    def get_output_key_encoding(self) -> str:
-        if self.output_key_encoding is None:
-            return "base64"
-        if self.output_key_encoding == "plain":
-            return "utf-8"
-        return self.output_key_encoding
-
-    def get_output_value_encoding(self) -> str:
-        if self.output_value_encoding is None:
-            return "base64"
-        if self.output_value_encoding == "plain":
-            return "utf-8"
-        return self.output_value_encoding
+    key_struct_format: str
+    value_struct_format: str
 
 
 @click.command("consume", context_settings={"help_option_names": ["-h", "--help"]})
@@ -89,28 +70,26 @@ class ConsumeOptions:
     default=False,
 )
 @click.option(
-    "-k",
-    "--output-key-encoding",
+    "--key-struct-format",
     help="Set this flag to set encoding for key",
-    type=click.Choice(['base64', 'str', 'hex'], case_sensitive=False),
-    default="base64"
+    type=str
 )
 @click.option(
-    "-v",
-    "--output-value-encoding",
+    "--value-struct-format",
     help="Set this flag to set output encoding for value.",
-    type=click.Choice(['base64', 'plain'], case_sensitive=False),
-    default="base64"
+    type=str
 )
 @click.option(
-    '-sk', '--key-serializer',
-    type=click.Choice(['raw', 'avro', 'proto', 'sruct'], case_sensitive=False),
+    '-k',
+    '--key-serializer',
+    type=click.Choice(['raw', 'avro', 'proto', 'struct'], case_sensitive=False),
     help='Specify deserialization for keys',
     default="raw",
 )
 @click.option(
-    '-sv', '--value-serializer',
-    type=click.Choice(['raw', 'avro', 'proto', 'sruct'], case_sensitive=False),
+    '-v',
+    '--value-serializer',
+    type=click.Choice(['raw', 'avro', 'proto', 'struct'], case_sensitive=False),
     help='Specify deserialization for keys',
     default="raw",
 )
@@ -226,15 +205,16 @@ def create_input_handler(consumer_options: ConsumeOptions):
 def create_messages_serializer(consumer_options: ConsumeOptions) -> MessageSerializer:
     key_serializer = create_serializer(
         consumer_options.key_serializer,
-        consumer_options.get_output_key_encoding(),
-        consumer_options)
+        consumer_options.key_struct_format,
+        consumer_options
+    )
 
     val_serializer = create_serializer(
         consumer_options.value_serializer,
-        consumer_options.get_output_value_encoding(),
+        consumer_options.value_struct_format,
         consumer_options)
-    return MessageSerializer(key_serializer=key_serializer,
-                             value_serializer=val_serializer)
+
+    return MessageSerializer(key_serializer=key_serializer, value_serializer=val_serializer)
 
 
 def create_output_handler(consumer_options: ConsumeOptions):
@@ -243,14 +223,17 @@ def create_output_handler(consumer_options: ConsumeOptions):
             scheme="pipe",
             host="stdout",
             path="",
-            key_encoding=consumer_options.get_output_key_encoding(),
-            value_encoding=consumer_options.get_output_value_encoding(),
+            key_encoding="utf-8",
+            value_encoding="utf-8",
             pretty_print="1" if consumer_options.pretty_print else "",
         )
     )
 
 
-def create_serializer(serializer: str, encoding: str, consumer_options: ConsumeOptions):
+def create_serializer(
+        serializer: str,
+        struct_format: str,
+        consumer_options: ConsumeOptions):
     config = consumer_options.state.config
     if serializer == "json":
         return JsonSerializer(JsonSerializerConfig(scheme="json"))
@@ -259,10 +242,12 @@ def create_serializer(serializer: str, encoding: str, consumer_options: ConsumeO
             RegistryAvroSerializerConfig(scheme="reg-avro",
                                          schema_registry_uri=config.schema_registry)
         )
-    elif serializer == "raw" and encoding == "base64":
+    elif serializer == "raw":
         serializer = RawSerializer(RawSerializerConfig(scheme="raw"))
     elif serializer == "proto":
-        proto_cfg = config.proto["api-spads_backend-product_advertisement_status_update_cz"]
+        if consumer_options.topic not in config.proto:
+            print("damn")
+        proto_cfg = config.proto[consumer_options.topic]
         serializer = ProtoSerializer(
             ProtoSerializerConfig(
                 scheme="proto",
@@ -271,6 +256,8 @@ def create_serializer(serializer: str, encoding: str, consumer_options: ConsumeO
                 class_name=proto_cfg.get('class_name'),
             )
         )
+    elif serializer == "struct":
+        serializer = StructSerializer(StructSerializerConfig(scheme='struct', struct_format=struct_format))
     else:
         serializer = StringSerializer(StringSerializerConfig(scheme="str"))
     return serializer

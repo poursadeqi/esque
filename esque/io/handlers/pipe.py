@@ -20,6 +20,7 @@ class ByteEncoding(Enum):
     BASE64 = "base64"
     UTF_8 = "utf-8"
     HEX = "hex"
+    Byte = "byte"
 
 
 @dataclass()
@@ -77,14 +78,12 @@ class PipeHandler(BaseHandler[PipeHandlerConfig]):
             return
         json.dump(
             {
-                "key": embed(binary_message.key, self.config.key_encoding),
-                "value": embed(binary_message.value, self.config.value_encoding),
+                "key": binary_message.key,
+                "value": binary_message.value,
                 "partition": binary_message.partition,
                 "offset": binary_message.offset,
                 "timestamp": binary_message.timestamp.timestamp(),
                 "headers": [{"key": h.key, "value": h.value} for h in binary_message.headers],
-                "keyenc": str(self.config.key_encoding),
-                "valueenc": str(self.config.value_encoding),
             },
             self._stream,
             indent=2 if self.config.pretty_print else None,
