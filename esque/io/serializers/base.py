@@ -9,7 +9,7 @@ from esque.io.stream_events import StreamEvent
 SC = TypeVar("SC", bound="SerializerConfig")
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class SerializerConfig:
     scheme: str
 
@@ -74,7 +74,7 @@ class MessageSerializer:
         )
 
     def serialize_many(
-        self, messages: Iterable[Union[Message, StreamEvent]]
+            self, messages: Iterable[Union[Message, StreamEvent]]
     ) -> Iterable[Union[BinaryMessage, StreamEvent]]:
         return (self.serialize(message) for message in messages)
 
@@ -94,6 +94,6 @@ class MessageSerializer:
         )
 
     def deserialize_many(
-        self, binary_message_stream: Iterable[Union[BinaryMessage, StreamEvent]]
+            self, binary_message_stream: Iterable[Union[BinaryMessage, StreamEvent]]
     ) -> Iterable[Union[Message, StreamEvent]]:
         return (self.deserialize(binary_message) for binary_message in binary_message_stream)

@@ -35,40 +35,31 @@ class ConsumeOptions:
     number: Optional[int]
     match: str
     last: bool
-    directory: str
     consumer_group: str
     preserve_order: bool
-    write_to_stdout: bool
     pretty_print: bool
-    key_encoding: str
-    value_encoding: str
+    output_key_encoding: str
+    output_value_encoding: str
     key_serializer: str
     value_serializer: str
 
-    def __post_init__(self):
-        if self.directory and self.write_to_stdout:
-            raise ValueError("Cannot write to a directory and STDOUT, please pick one!")
-
-    def get_key_encoding(self) -> str:
-        if self.key_encoding is None:
+    def get_output_key_encoding(self) -> str:
+        if self.output_key_encoding is None:
             return "base64"
-        if self.key_encoding == "str":
+        if self.output_key_encoding == "plain":
             return "utf-8"
-        return self.key_encoding
+        return self.output_key_encoding
 
-    def get_value_encoding(self) -> str:
-        if self.value_encoding is None:
+    def get_output_value_encoding(self) -> str:
+        if self.output_value_encoding is None:
             return "base64"
-        if self.value_encoding == "str":
+        if self.output_value_encoding == "plain":
             return "utf-8"
-        return self.value_encoding
+        return self.output_value_encoding
 
 
 @click.command("consume", context_settings={"help_option_names": ["-h", "--help"]})
 @click.argument("topic", shell_complete=list_topics)
-@click.option(
-    "-d", "--directory", metavar="<directory>", help="Sets the directory to write the messages to.", type=click.STRING
-)
 @click.option(
     "-f",
     "--from",
@@ -99,29 +90,29 @@ class ConsumeOptions:
 )
 @click.option(
     "-k",
-    "--key-encoding",
+    "--output-key-encoding",
     help="Set this flag to set encoding for key",
     type=click.Choice(['base64', 'str', 'hex'], case_sensitive=False),
     default="base64"
 )
 @click.option(
     "-v",
-    "--value-encoding",
-    help="Set this flag to set encoding for value",
-    type=click.Choice(['base64', 'str', 'hex'], case_sensitive=False),
+    "--output-value-encoding",
+    help="Set this flag to set output encoding for value.",
+    type=click.Choice(['base64', 'plain'], case_sensitive=False),
     default="base64"
 )
 @click.option(
     '-sk', '--key-serializer',
-    type=click.Choice(['none', 'avro', 'proto', 'sruct'], case_sensitive=False),
+    type=click.Choice(['raw', 'avro', 'proto', 'sruct'], case_sensitive=False),
     help='Specify deserialization for keys',
-    default="none",
+    default="raw",
 )
 @click.option(
     '-sv', '--value-serializer',
-    type=click.Choice(['none', 'avro', 'proto', 'sruct'], case_sensitive=False),
+    type=click.Choice(['raw', 'avro', 'proto', 'sruct'], case_sensitive=False),
     help='Specify deserialization for keys',
-    default="none",
+    default="raw",
 )
 @click.option(
     "-c",
@@ -142,7 +133,6 @@ class ConsumeOptions:
     default=False,
     is_flag=True,
 )
-@click.option("--stdout", "write_to_stdout", help="Write messages to STDOUT.", default=False, is_flag=True)
 @click.option(
     "-p",
     "--pretty-print",
@@ -155,8 +145,7 @@ class ConsumeOptions:
 def consume(*args, **kwargs):
     """Consume messages from a topic.
 
-    Read messages from a given topic in a given context. These messages can either be written
-    to files in an automatically generated directory (default behavior), or to STDOUT.
+    Read messages from a given topic in a given context. These messages will be written into STDOUT.
 
     If writing to STDOUT, then data will be represented as a JSON object with the message key and the message value
     always being a string.
@@ -188,22 +177,16 @@ def consume(*args, **kwargs):
         consumer_options.from_context = consumer_options.state.config.current_context
     consumer_options.state.config.context_switch(consumer_options.from_context)
 
-    directory = consumer_options.directory
-    if not consumer_options.write_to_stdout and not consumer_options.directory:
-        directory = Path() / "messages" / consumer_options.topic / datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
     builder = PipelineBuilder()
-
-    input_message_serializer = create_input_serializer(consumer_options)
-    builder.with_input_message_serializer(input_message_serializer)
+    builder.with_input_message_serializer(create_messages_serializer(consumer_options))
 
     input_handler = create_input_handler(consumer_options)
     builder.with_input_handler(input_handler)
 
-    output_handler = create_output_handler(directory, consumer_options)
+    output_handler = create_output_handler(consumer_options)
     builder.with_output_handler(output_handler)
 
-    output_message_serializer = create_output_message_serializer(directory, consumer_options)
+    output_message_serializer = create_messages_serializer(consumer_options)
     builder.with_output_message_serializer(output_message_serializer)
 
     if consumer_options.last:
@@ -228,18 +211,6 @@ def consume(*args, **kwargs):
     pipeline = builder.build()
     pipeline.run_pipeline()
 
-    if not consumer_options.write_to_stdout:
-        if counter.message_count == consumer_options.number:
-            click.echo(blue_bold(str(counter.message_count)) + " messages consumed.")
-        else:
-            click.echo(
-                "Only found "
-                + bold(str(counter.message_count))
-                + " messages in topic, out of "
-                + blue_bold(str(consumer_options.number))
-                + " required."
-            )
-
 
 def create_input_handler(consumer_options: ConsumeOptions):
     consumer_group = consumer_options.consumer_group
@@ -252,68 +223,54 @@ def create_input_handler(consumer_options: ConsumeOptions):
     return input_handler
 
 
-def create_input_serializer(consumer_options: ConsumeOptions):
-    key_input_serializer = create_serializer(consumer_options.get_key_encoding(), consumer_options.state)
-    value_input_serializer = create_serializer(consumer_options.get_value_encoding(), consumer_options.state)
+def create_messages_serializer(consumer_options: ConsumeOptions) -> MessageSerializer:
+    key_serializer = create_serializer(
+        consumer_options.key_serializer,
+        consumer_options.get_output_key_encoding(),
+        consumer_options)
 
-    return MessageSerializer(key_serializer=key_input_serializer,
-                             value_serializer=value_input_serializer)
-
-
-def create_output_handler(directory: pathlib.Path, consumer_options: ConsumeOptions):
-    if consumer_options.write_to_stdout:
-        pretty_print = "1" if consumer_options.pretty_print else ""
-        output_handler = PipeHandler(
-            PipeHandlerConfig(
-                scheme="pipe",
-                host="stdout",
-                path="",
-                key_encoding=consumer_options.get_key_encoding(),
-                value_encoding=consumer_options.get_value_encoding(),
-                pretty_print=pretty_print,
-            )
-        )
-    else:
-        output_handler = PathHandler(PathHandlerConfig(scheme="path", host="", path=str(directory)))
-        click.echo(f"Writing data to {blue_bold(str(directory))}.")
-    return output_handler
-
-
-def create_output_message_serializer(
-        directory: pathlib.Path, consumer_options: ConsumeOptions
-) -> MessageSerializer:
-    key_serializer = create_output_serializer(consumer_options.key_serializer, consumer_options.get_key_encoding(),
-                                              consumer_options, directory)
-    val_serializer = create_output_serializer(consumer_options.value_serializer, consumer_options.get_value_encoding(),
-                                              consumer_options, directory)
+    val_serializer = create_serializer(
+        consumer_options.value_serializer,
+        consumer_options.get_output_value_encoding(),
+        consumer_options)
     return MessageSerializer(key_serializer=key_serializer,
                              value_serializer=val_serializer)
 
 
-def create_serializer(encoding: str, state: State):
-    if encoding == "base64":
-        return RawSerializer(RawSerializerConfig(scheme="raw"))
-    elif encoding == "avro":
+def create_output_handler(consumer_options: ConsumeOptions):
+    return PipeHandler(
+        PipeHandlerConfig(
+            scheme="pipe",
+            host="stdout",
+            path="",
+            key_encoding=consumer_options.get_output_key_encoding(),
+            value_encoding=consumer_options.get_output_value_encoding(),
+            pretty_print="1" if consumer_options.pretty_print else "",
+        )
+    )
+
+
+def create_serializer(serializer: str, encoding: str, consumer_options: ConsumeOptions):
+    config = consumer_options.state.config
+    if serializer == "json":
+        return JsonSerializer(JsonSerializerConfig(scheme="json"))
+    elif serializer == "avro":
         return RegistryAvroSerializer(
             RegistryAvroSerializerConfig(scheme="reg-avro",
-                                         schema_registry_uri=state.config.schema_registry)
+                                         schema_registry_uri=config.schema_registry)
         )
-    elif encoding == "proto":
-        return ProtoSerializer(ProtoSerializerConfig(scheme="proto"))
-    return StringSerializer(StringSerializerConfig(scheme="str"))
-
-
-def create_output_serializer(serializer: str, encoding: str, consumer_options: ConsumeOptions, directory):
-    if serializer == "avro" and consumer_options.write_to_stdout:
-        serializer = JsonSerializer(JsonSerializerConfig(scheme="json"))
-    elif serializer == "avro" and not consumer_options.write_to_stdout:
-        serializer = RegistryAvroSerializer(
-            RegistryAvroSerializerConfig(scheme="reg-avro", schema_registry_uri=f"path:///{directory}")
-        )
-    elif serializer == "none" and encoding == "base64":
+    elif serializer == "raw" and encoding == "base64":
         serializer = RawSerializer(RawSerializerConfig(scheme="raw"))
     elif serializer == "proto":
-        serializer = ProtoSerializer(ProtoSerializerConfig(scheme="proto"))
+        proto_cfg = config.proto["api-spads_backend-product_advertisement_status_update_cz"]
+        serializer = ProtoSerializer(
+            ProtoSerializerConfig(
+                scheme="proto",
+                protoc_py_path=proto_cfg.get('protoc_py_path'),
+                module_name=proto_cfg.get('module_name'),
+                class_name=proto_cfg.get('class_name'),
+            )
+        )
     else:
         serializer = StringSerializer(StringSerializerConfig(scheme="str"))
     return serializer
