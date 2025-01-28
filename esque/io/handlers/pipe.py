@@ -82,7 +82,7 @@ class PipeHandler(BaseHandler[PipeHandlerConfig]):
                 "value": binary_message.value,
                 "partition": binary_message.partition,
                 "offset": binary_message.offset,
-                "timestamp": binary_message.timestamp.timestamp(),
+                "timestamp": binary_message.timestamp.isoformat(),
                 "headers": [{"key": h.key, "value": h.value} for h in binary_message.headers],
             },
             self._stream,

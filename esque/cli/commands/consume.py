@@ -10,10 +10,10 @@ from esque.io.handlers import KafkaHandler
 from esque.io.handlers.kafka import KafkaHandlerConfig
 from esque.io.handlers.pipe import PipeHandler, PipeHandlerConfig
 from esque.io.pipeline import PipelineBuilder
-from esque.io.serializers import JsonSerializer, RawSerializer, RegistryAvroSerializer, StringSerializer
+from esque.io.serializers import JsonSerializer, BinarySerializer, RegistryAvroSerializer, StringSerializer
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.json import JsonSerializerConfig
-from esque.io.serializers.raw import RawSerializerConfig
+from esque.io.serializers.binary import BinarySerializerConfig
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.serializers.proto import ProtoSerializer, ProtoSerializerConfig
@@ -65,8 +65,8 @@ class ConsumeOptions:
 @click.option(
     "--last/--first",
     help="Start consuming from the earliest or latest offset in the topic."
-    "Latest means at the end of the topic _not including_ the last message(s),"
-    "so if no new data is coming in nothing will be consumed.",
+         "Latest means at the end of the topic _not including_ the last message(s),"
+         "so if no new data is coming in nothing will be consumed.",
     default=False,
 )
 @click.option("--key-struct-format", help="Set this flag to set encoding for key", type=str)
@@ -74,16 +74,16 @@ class ConsumeOptions:
 @click.option(
     "-k",
     "--key-serializer",
-    type=click.Choice(["raw", "avro", "proto", "struct"], case_sensitive=False),
+    type=click.Choice(["str", "binary", "avro", "proto", "struct"], case_sensitive=False),
     help="Specify deserialization for keys",
-    default="raw",
+    default="binary",
 )
 @click.option(
     "-v",
     "--value-serializer",
-    type=click.Choice(["raw", "avro", "proto", "struct"], case_sensitive=False),
+    type=click.Choice(["str", "binary", "avro", "proto", "struct"], case_sensitive=False),
     help="Specify deserialization for keys",
-    default="raw",
+    default="binary",
 )
 @click.option(
     "-c",
@@ -99,8 +99,8 @@ class ConsumeOptions:
 @click.option(
     "--preserve-order",
     help="Preserve the order of messages, regardless of their partition. "
-    "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
-    "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
+         "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
+         "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
     default=False,
     is_flag=True,
 )
@@ -108,7 +108,7 @@ class ConsumeOptions:
     "-p",
     "--pretty-print",
     help="Use multiple lines to represent each kafka message instead of putting every JSON object into a single "
-    "line. Only has an effect when consuming to stdout.",
+         "line. Only has an effect when consuming to stdout.",
     default=False,
     is_flag=True,
 )
@@ -180,8 +180,7 @@ def consume(*args, **kwargs):
 
     builder.with_stream_decorator(counter_decorator)
 
-    pipeline = builder.build()
-    pipeline.run_pipeline()
+    builder.build().run_pipeline()
 
 
 def create_input_handler(consumer_options: ConsumeOptions):
@@ -232,11 +231,12 @@ def create_serializer(serializer: str, struct_format: str, consumer_options: Con
         return RegistryAvroSerializer(
             RegistryAvroSerializerConfig(scheme="reg-avro", schema_registry_uri=config.schema_registry)
         )
-    elif serializer == "raw":
-        serializer = RawSerializer(RawSerializerConfig(scheme="raw"))
-    elif serializer == "proto":
-        if consumer_options.topic not in config.proto:
-            print("damn")
+    elif serializer == "str":
+        serializer = StringSerializer(StringSerializerConfig(scheme="str"))
+    elif serializer == "proto" and consumer_options.topic not in config.proto:
+        raise RuntimeError(
+            "topic name was not found in proto configs. please add it to the configuration or use raw serializer")
+    elif serializer == "proto" and consumer_options.topic in config.proto:
         proto_cfg = config.proto[consumer_options.topic]
         serializer = ProtoSerializer(
             ProtoSerializerConfig(
@@ -249,5 +249,5 @@ def create_serializer(serializer: str, struct_format: str, consumer_options: Con
     elif serializer == "struct":
         serializer = StructSerializer(StructSerializerConfig(scheme="struct", struct_format=struct_format))
     else:
-        serializer = StringSerializer(StringSerializerConfig(scheme="str"))
+        serializer = BinarySerializer(BinarySerializerConfig(scheme="raw"))
     return serializer

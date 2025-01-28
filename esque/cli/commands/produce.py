@@ -12,9 +12,9 @@ from esque.io.handlers.kafka import KafkaHandlerConfig
 from esque.io.handlers.path import PathHandlerConfig
 from esque.io.handlers.pipe import PipeHandlerConfig
 from esque.io.pipeline import PipelineBuilder
-from esque.io.serializers import RawSerializer, RegistryAvroSerializer, StringSerializer
+from esque.io.serializers import BinarySerializer, RegistryAvroSerializer, StringSerializer
 from esque.io.serializers.base import MessageSerializer
-from esque.io.serializers.raw import RawSerializerConfig
+from esque.io.serializers.binary import BinarySerializerConfig
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.stream_decorators import event_counter, yield_only_matching_messages
@@ -184,7 +184,7 @@ def create_output_handler(to_context: str, topic: str):
 
 def create_output_serializer(avro: bool, binary: bool, topic: str, state: State) -> MessageSerializer:
     if binary:
-        key_serializer = RawSerializer(RawSerializerConfig(scheme="raw"))
+        key_serializer = BinarySerializer(BinarySerializerConfig(scheme="raw"))
         value_serializer = key_serializer
     elif avro:
         config = RegistryAvroSerializerConfig(scheme="reg-avro", schema_registry_uri=state.config.schema_registry)
@@ -215,7 +215,7 @@ def create_input_message_serializer(directory: pathlib.Path, avro: bool, binary:
             RegistryAvroSerializerConfig(scheme="reg-avro", schema_registry_uri=f"path:///{directory}")
         )
     elif binary:
-        serializer = RawSerializer(RawSerializerConfig(scheme="raw"))
+        serializer = BinarySerializer(BinarySerializerConfig(scheme="raw"))
     else:
         serializer = StringSerializer(StringSerializerConfig(scheme="str"))
     return MessageSerializer(key_serializer=serializer, value_serializer=serializer)

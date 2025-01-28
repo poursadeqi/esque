@@ -1,12 +1,12 @@
 from esque.io.serializers import (
     DataSerializer,
     JsonSerializer,
-    RawSerializer,
+    BinarySerializer,
     RegistryAvroSerializer,
     StringSerializer,
 )
 from esque.io.serializers.json import JsonSerializerConfig
-from esque.io.serializers.raw import RawSerializerConfig
+from esque.io.serializers.binary import BinarySerializerConfig
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 
@@ -16,7 +16,7 @@ def case_json_serializer() -> DataSerializer:
 
 
 def case_raw_serializer() -> DataSerializer:
-    return RawSerializer(RawSerializerConfig(scheme="raw"))
+    return BinarySerializer(BinarySerializerConfig(scheme="raw"))
 
 
 def case_registry_avro_serializer() -> DataSerializer:

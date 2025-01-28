@@ -17,7 +17,7 @@ class StringSerializer(DataSerializer[StringSerializerConfig]):
     def serialize(self, data: Data) -> Optional[bytes]:
         if isinstance(data.data_type, NoData):
             return None
-        return data.payload.encode(encoding=self.config.encoding)
+        return data.payload
 
     def deserialize(self, raw_data: Optional[bytes]) -> Data:
         if raw_data is None:

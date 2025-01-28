@@ -8,12 +8,12 @@ from base64 import b64encode
 
 
 @dataclasses.dataclass()
-class RawSerializerConfig(SerializerConfig):
+class BinarySerializerConfig(SerializerConfig):
     pass
 
 
-class RawSerializer(DataSerializer):
-    config_cls = RawSerializerConfig
+class BinarySerializer(DataSerializer):
+    config_cls = BinarySerializerConfig
     unknown_data_type: UnknownDataType = UnknownDataType()
 
     def deserialize(self, raw_data: Optional[bytes]) -> Data:
