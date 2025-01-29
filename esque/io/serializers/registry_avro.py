@@ -258,7 +258,8 @@ class RegistryAvroSerializer(DataSerializer):
             schema_id = get_schema_id_from_prefix(fake_stream.read(5))
             avro_type = self._registry_client.get_avro_type_by_id(schema_id)
             record = fastavro.schemaless_reader(fake_stream, avro_type.fastavro_schema)
-            return Data(payload=record, data_type=avro_type)
+            return record
+            # return Data(payload=record, data_type=avro_type)
 
 
 @dataclasses.dataclass

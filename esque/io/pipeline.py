@@ -115,7 +115,7 @@ class UriConfig:
     def _strip_prefix(self, key: str) -> Tuple[str, str]:
         for prefix in self.ALL_PREFIXES:
             if key.startswith(prefix):
-                return prefix, key[len(prefix) :]
+                return prefix, key[len(prefix):]
 
     def _add_param(self, prefix: str, key: str, value: str):
         if prefix == self.HANDLER_PARAM_PREFIX:
@@ -176,12 +176,10 @@ class HandlerSerializerMessageWriter(MessageWriter):
         self._message_serializer = message_serializer
 
     def write_message(self, message: Message):
-        self._handler.write_message(binary_message=self._message_serializer.serialize(message=message))
+        self._handler.write_message(binary_message=message)
 
     def write_many_messages(self, message_stream: Iterable[Union[Message, StreamEvent]]):
-        self._handler.write_many_messages(
-            message_stream=self._message_serializer.serialize_many(messages=message_stream)
-        )
+        self._handler.write_many_messages(message_stream=message_stream)
 
     def close(self):
         self._handler.close()
@@ -193,10 +191,10 @@ class Pipeline:
     _stream_decorators: List[Callable[[Iterable], Iterable]]
 
     def __init__(
-        self,
-        input_element: MessageReader,
-        output_element: MessageWriter,
-        stream_decorators: List[Callable[[Iterable], Iterable]],
+            self,
+            input_element: MessageReader,
+            output_element: MessageWriter,
+            stream_decorators: List[Callable[[Iterable], Iterable]],
     ):
         self._input_element = input_element
         self._output_element = output_element
