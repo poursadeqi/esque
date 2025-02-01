@@ -115,7 +115,7 @@ class UriConfig:
     def _strip_prefix(self, key: str) -> Tuple[str, str]:
         for prefix in self.ALL_PREFIXES:
             if key.startswith(prefix):
-                return prefix, key[len(prefix) :]
+                return prefix, key[len(prefix):]
 
     def _add_param(self, prefix: str, key: str, value: str):
         if prefix == self.HANDLER_PARAM_PREFIX:
@@ -130,10 +130,6 @@ class UriConfig:
 
 
 class MessageWriter(ABC):
-    @abstractmethod
-    def write_message(self, message: OutputMessage):
-        raise NotImplementedError
-
     @abstractmethod
     def write_many_messages(self, message_stream: Iterable[Union[OutputMessage, StreamEvent]]):
         raise NotImplementedError
@@ -191,10 +187,10 @@ class Pipeline:
     _stream_decorators: List[Callable[[Iterable], Iterable]]
 
     def __init__(
-        self,
-        input_element: MessageReader,
-        output_element: MessageWriter,
-        stream_decorators: List[Callable[[Iterable], Iterable]],
+            self,
+            input_element: MessageReader,
+            output_element: MessageWriter,
+            stream_decorators: List[Callable[[Iterable], Iterable]],
     ):
         self._input_element = input_element
         self._output_element = output_element
@@ -212,9 +208,6 @@ class Pipeline:
     def run_pipeline(self):
         with closing(self):
             self._output_element.write_many_messages(self.decorated_message_stream())
-
-    def write_message(self, message: OutputMessage):
-        self._output_element.write_message(message=message)
 
     def write_many_messages(self, message_stream: Iterable[Union[OutputMessage, StreamEvent]]):
         self._output_element.write_many_messages(message_stream=message_stream)

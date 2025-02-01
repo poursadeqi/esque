@@ -89,8 +89,6 @@ class PipeHandler(BaseHandler[PipeHandlerConfig]):
         ),
             indent=2 if self.config.pretty_print else None,
         )
-        # self._stream.write("\n")
-        # self._stream.flush()
 
     def read_message(self) -> Union[StreamEvent, BinaryMessage]:
         while True:
