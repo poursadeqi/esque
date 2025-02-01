@@ -52,15 +52,15 @@ more-itertools = "^8.10.0"
 protobuf = "^5.29.3"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^5.2"
-pytest-mock = "^1.11"
-pytest-cov = "^2.8"
+pytest = "~8"
+pytest-mock = "^3.11"
+pytest-cov = "^6.0.0"
 flake8 = "^3.7"
-black = { version = "22.6.0", allow-prereleases = true }
-isort = { version = "^4.3", extras = ["pyproject"] }
-bandit = "^1.6.2"
-coveralls = "^1.8.2"
-pytest-cases = "^3.6.4"
+black = { version = "25.1.0", allow-prereleases = true }
+isort = { version = "^6.0.0", extras = ["pyproject"] }
+bandit = "^1.8"
+coveralls = "^4.0"
+pytest-cases = "^3.8.6"
 
 [tool.black]
 line-length = 119

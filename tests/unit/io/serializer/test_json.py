@@ -19,9 +19,8 @@ ORIGINAL_TEST_DATA = [
             "timestamp_field": datetime.datetime(2020, 1, 1, 2, 3, 4, tzinfo=CET),
             "bytes_field": b"\x00\x01\x02",
         },
-        JsonSerializer.unknown_data_type,
     ),
-    MessagePayload({"a": "b"}, JsonSerializer.unknown_data_type),
+    MessagePayload({"a": "b"}),
 ]
 
 # Although removing them would make the serialized data more compact, we decided to keep the space after ':' and ','
@@ -47,9 +46,8 @@ EXPECTED_DESERIALIZED_DATA = [
             "timestamp_field": "2020-01-01T02:03:04+01:00",
             "bytes_field": "AAEC",
         },
-        JsonSerializer.unknown_data_type,
     ),
-    MessagePayload({"a": "b"}, JsonSerializer.unknown_data_type),
+    MessagePayload({"a": "b"}),
 ]
 
 

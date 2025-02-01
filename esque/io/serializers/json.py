@@ -4,7 +4,6 @@ import datetime as dt
 import json
 from typing import Any, Optional
 
-from esque.io.data_types import NoData, UnknownDataType
 from esque.io.messages import MessagePayload
 from esque.io.serializers import SerializerConfig
 from esque.io.serializers.base import DataSerializer
@@ -19,11 +18,8 @@ class JsonSerializerConfig(SerializerConfig):
 # TODO: implement solution to handle data types when they are known
 class JsonSerializer(DataSerializer[JsonSerializerConfig]):
     config_cls = JsonSerializerConfig
-    unknown_data_type: UnknownDataType = UnknownDataType()
 
     def serialize(self, data: MessagePayload) -> Optional[bytes]:
-        if isinstance(data.data_type, NoData):
-            return None
         indent = None
         if self.config.indent is not None:
             indent = int(self.config.indent)
@@ -33,8 +29,8 @@ class JsonSerializer(DataSerializer[JsonSerializerConfig]):
 
     def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
         if raw_data is None:
-            return MessagePayload.NO_DATA
-        return MessagePayload(payload=json.loads(raw_data.decode(self.config.encoding)), data_type=self.unknown_data_type)
+            return MessagePayload()
+        return MessagePayload(payload=json.loads(raw_data.decode(self.config.encoding)))
 
     def field_serializer(self, data: Any) -> str:
         if isinstance(data, (dt.datetime, dt.date, dt.time)):
