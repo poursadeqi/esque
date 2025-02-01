@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import ClassVar, Generic, Iterable, List, Optional, Type, TypeVar, Union
 
 from esque.io.exceptions import EsqueIOSerializerConfigException
-from esque.io.messages import BinaryMessage, Data, Message
+from esque.io.messages import BinaryMessage, MessagePayload, OutputMessage
 from esque.io.stream_events import StreamEvent
 
 SC = TypeVar("SC", bound="SerializerConfig")
@@ -40,17 +40,17 @@ class DataSerializer(ABC, Generic[SC]):
         self.config = config
 
     @abstractmethod
-    def serialize(self, data: Data) -> Optional[bytes]:
+    def serialize(self, data: MessagePayload) -> Optional[bytes]:
         raise NotImplementedError
 
-    def serialize_many(self, data_list: Iterable[Data]) -> Iterable[Optional[bytes]]:
+    def serialize_many(self, data_list: Iterable[MessagePayload]) -> Iterable[Optional[bytes]]:
         return (self.serialize(message) for message in data_list)
 
     @abstractmethod
-    def deserialize(self, raw_data: Optional[bytes]) -> Data:
+    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
         raise NotImplementedError
 
-    def deserialize_many(self, raw_data_stream: Iterable[Optional[bytes]]) -> Iterable[Data]:
+    def deserialize_many(self, raw_data_stream: Iterable[Optional[bytes]]) -> Iterable[MessagePayload]:
         return (self.deserialize(raw_data) for raw_data in raw_data_stream)
 
 
@@ -59,7 +59,7 @@ class MessageSerializer:
         self._key_serializer = key_serializer
         self._value_serializer = value_serializer if value_serializer else key_serializer
 
-    def serialize(self, message: Union[Message, StreamEvent]) -> Union[BinaryMessage, StreamEvent]:
+    def serialize(self, message: Union[OutputMessage, StreamEvent]) -> Union[BinaryMessage, StreamEvent]:
         if isinstance(message, StreamEvent):
             return message
         key_data = self._key_serializer.serialize(message.key)
@@ -74,17 +74,17 @@ class MessageSerializer:
         )
 
     def serialize_many(
-        self, messages: Iterable[Union[Message, StreamEvent]]
+        self, messages: Iterable[Union[OutputMessage, StreamEvent]]
     ) -> Iterable[Union[BinaryMessage, StreamEvent]]:
         return (self.serialize(message) for message in messages)
 
-    def deserialize(self, binary_message: Union[BinaryMessage, StreamEvent]) -> Union[Message, StreamEvent]:
+    def deserialize(self, binary_message: Union[BinaryMessage, StreamEvent]) -> Union[OutputMessage, StreamEvent]:
         if isinstance(binary_message, StreamEvent):
             return binary_message
 
         key_data = self._key_serializer.deserialize(binary_message.key)
         value_data = self._value_serializer.deserialize(binary_message.value)
-        return Message(
+        return OutputMessage(
             key=key_data,
             value=value_data,
             offset=binary_message.offset,
@@ -95,5 +95,5 @@ class MessageSerializer:
 
     def deserialize_many(
         self, binary_message_stream: Iterable[Union[BinaryMessage, StreamEvent]]
-    ) -> Iterable[Union[Message, StreamEvent]]:
+    ) -> Iterable[Union[OutputMessage, StreamEvent]]:
         return (self.deserialize(binary_message) for binary_message in binary_message_stream)

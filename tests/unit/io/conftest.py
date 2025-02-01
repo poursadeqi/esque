@@ -8,7 +8,7 @@ from pytest_cases import fixture
 
 from esque.io.data_types import NoData
 from esque.io.handlers.base import BaseHandler, HandlerConfig
-from esque.io.messages import BinaryMessage, Data, Message, MessageHeader
+from esque.io.messages import BinaryMessage, MessagePayload, OutputMessage, MessageHeader
 from esque.io.pipeline import HandlerSerializerMessageReader, HandlerSerializerMessageWriter, PipelineBuilder
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.string import StringSerializer, StringSerializerConfig
@@ -146,8 +146,8 @@ def binary_messages() -> List[BinaryMessage]:
 
 
 @fixture(scope="session")
-def no_data() -> Data:
-    return Data(None, NoData())
+def no_data() -> MessagePayload:
+    return MessagePayload(None, NoData())
 
 
 @fixture()
@@ -159,7 +159,7 @@ def partition_count(binary_messages) -> int:
 @fixture()
 def string_messages(
     binary_messages: List[BinaryMessage], string_message_serializer: MessageSerializer
-) -> List[Message]:
+) -> List[OutputMessage]:
     return list(string_message_serializer.deserialize_many(binary_messages))
 
 

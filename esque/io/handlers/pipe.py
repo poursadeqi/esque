@@ -5,6 +5,7 @@ import sys
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, NoReturn, Optional, TextIO, Union
+from rich import print_json
 
 from esque.io.exceptions import (
     EsqueIOHandlerConfigException,
@@ -12,7 +13,7 @@ from esque.io.exceptions import (
     EsqueIOSerializerConfigNotSupported,
 )
 from esque.io.handlers.base import BaseHandler, HandlerConfig
-from esque.io.messages import BinaryMessage, MessageHeader
+from esque.io.messages import BinaryMessage, MessageHeader, OutputMessage
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent
 
 
@@ -73,23 +74,23 @@ class PipeHandler(BaseHandler[PipeHandlerConfig]):
     def put_serializer_configs(self, config: Dict[str, Any]) -> NoReturn:
         raise EsqueIOSerializerConfigNotSupported
 
-    def write_message(self, binary_message: Union[BinaryMessage, StreamEvent]) -> None:
-        if isinstance(binary_message, StreamEvent):
+    def write_message(self, message: Union[OutputMessage, StreamEvent]) -> None:
+        if isinstance(message, StreamEvent):
             return
-        json.dump(
+        print_json(json.dumps(
             {
-                "key": binary_message.key,
-                "value": binary_message.value,
-                "partition": binary_message.partition,
-                "offset": binary_message.offset,
-                "timestamp": binary_message.timestamp.isoformat(),
-                "headers": [{"key": h.key, "value": h.value} for h in binary_message.headers],
-            },
-            self._stream,
+                "key": message.key.payload,
+                "value": message.value.payload,
+                "partition": message.partition,
+                "offset": message.offset,
+                "timestamp": message.timestamp.isoformat(),
+                "headers": [{"key": h.key, "value": h.value} for h in message.headers],
+            }
+        ),
             indent=2 if self.config.pretty_print else None,
         )
-        self._stream.write("\n")
-        self._stream.flush()
+        # self._stream.write("\n")
+        # self._stream.flush()
 
     def read_message(self) -> Union[StreamEvent, BinaryMessage]:
         while True:

@@ -1,6 +1,6 @@
 import dataclasses
 import datetime
-from typing import Any, ClassVar, List, NamedTuple, Optional
+from typing import Any, ClassVar, List, NamedTuple, Optional, Union
 
 from esque.io.data_types import DataType, NoData
 
@@ -11,14 +11,15 @@ class MessageHeader(NamedTuple):
 
 
 @dataclasses.dataclass
-class Data:
-    payload: Any
-    data_type: DataType
+class MessagePayload:
+    PrimaryTypes = Union[dict, list, tuple, str, int, float, bool, None]
+    payload: PrimaryTypes = None
 
-    NO_DATA: ClassVar["Data"]
+    def is_empty(self):
+        return self.payload is None
 
-
-Data.NO_DATA = Data(payload=None, data_type=NoData())
+    def __repr__(self):
+        return self.payload
 
 
 def now_utc() -> datetime.datetime:
@@ -26,9 +27,9 @@ def now_utc() -> datetime.datetime:
 
 
 @dataclasses.dataclass
-class Message:
-    key: Data = Data.NO_DATA
-    value: Data = Data.NO_DATA
+class OutputMessage:
+    key: MessagePayload
+    value: MessagePayload
     partition: int = -1
     offset: int = -1
     timestamp: datetime.datetime = dataclasses.field(default_factory=now_utc)

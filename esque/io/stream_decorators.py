@@ -3,11 +3,11 @@ from typing import Callable, Dict, Iterable, Iterator, Tuple, TypeVar, Union
 
 import more_itertools
 
-from esque.io.messages import BinaryMessage, Message
+from esque.io.messages import BinaryMessage, OutputMessage
 from esque.io.stream_events import EndOfStream, NthMessageRead, StreamEvent
 from esque.ruleparser.ruleengine import RuleTree
 
-M = TypeVar("M", bound=Union[Message, BinaryMessage])
+M = TypeVar("M", bound=Union[OutputMessage, BinaryMessage])
 MessageStream = Iterable[Union[M, StreamEvent]]
 
 

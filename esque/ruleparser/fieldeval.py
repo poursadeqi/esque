@@ -25,11 +25,11 @@ class FieldEval:
             return datetime.datetime.strftime(datetime.datetime.now(), self.__time_format)
         elif self.__message is None:
             return -1
-        elif isinstance(self.__message, esque.io.messages.Message):
+        elif isinstance(self.__message, esque.io.messages.OutputMessage):
             return self.__evaluate_io_message_field(field_name=field_name)
 
     def __evaluate_io_message_field(self, field_name: str):
-        assert isinstance(self.__message, esque.io.messages.Message)
+        assert isinstance(self.__message, esque.io.messages.OutputMessage)
         if field_name == Operator.FIELDS["MESSAGE_OFFSET"].replace("\\", ""):
             return self.__message.offset
         elif field_name == Operator.FIELDS["MESSAGE_PARTITION"].replace("\\", ""):
