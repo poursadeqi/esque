@@ -12,30 +12,29 @@ from esque.io.exceptions import (
     EsqueIOHandlerWriteException,
     EsqueIOSerializerConfigNotSupported,
 )
-from esque.io.handlers import BaseHandler, HandlerConfig
 from esque.io.messages import BinaryMessage, MessageHeader
 from esque.io.stream_events import EndOfStream, StreamEvent, TemporaryEndOfPartition
 
 
 @dataclasses.dataclass()
-class KafkaHandlerConfig(HandlerConfig):
-
+class KafkaHandlerConfig:
+    topic: str
     consumer_group_id: str = ESQUE_GROUP_ID
     send_timestamp: str = ""
+    context: str = None
 
     @property
     def topic_name(self) -> str:
-        return self.path
+        return self.topic
 
     @property
     def esque_context(self) -> str:
-        if not self.host:
+        if not self.context:
             return esque_config.Config.get_instance().current_context
-        return self.host
+        return self.context
 
 
-class KafkaHandler(BaseHandler[KafkaHandlerConfig]):
-    config_cls = KafkaHandlerConfig
+class KafkaHandler:
     _eof_reached: Dict[int, bool]
     OFFSET_AT_FIRST_MESSAGE = OFFSET_BEGINNING
     OFFSET_AFTER_LAST_MESSAGE = OFFSET_END
@@ -44,7 +43,7 @@ class KafkaHandler(BaseHandler[KafkaHandlerConfig]):
     OFFSET_AT_LAST_MESSAGE = -101
 
     def __init__(self, config: KafkaHandlerConfig):
-        super().__init__(config)
+        self.config = config
         self._assignment_created = False
         self._seek = OFFSET_BEGINNING
         self._high_watermarks: Dict[int, int] = {}
@@ -200,7 +199,7 @@ class KafkaHandler(BaseHandler[KafkaHandlerConfig]):
 
     @staticmethod
     def _confluent_to_io_headers(
-        confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]]
+            confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]]
     ) -> List[MessageHeader]:
         io_headers: List[MessageHeader] = []
 

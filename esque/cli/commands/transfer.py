@@ -197,7 +197,7 @@ def create_input_handler(consumergroup, from_context, topic):
     if not consumergroup:
         consumergroup = ESQUE_GROUP_ID
     input_handler = KafkaHandler(
-        KafkaHandlerConfig(scheme="kafka", host=from_context, path=topic, consumer_group_id=consumergroup)
+        KafkaHandlerConfig(context=from_context, topic=topic, consumer_group_id=consumergroup)
     )
     return input_handler
 
@@ -216,7 +216,7 @@ def create_input_serializer(avro, binary, state):
 
 
 def create_output_handler(to_context: str, topic: str):
-    output_handler = KafkaHandler(KafkaHandlerConfig(scheme="kafka", host=to_context, path=topic))
+    output_handler = KafkaHandler(KafkaHandlerConfig(context=to_context, topic=topic))
     return output_handler
 
 

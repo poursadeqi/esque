@@ -1,18 +1,16 @@
 import base64
 import datetime
 import json
-import sys
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, NoReturn, Optional, TextIO, Union
-from rich import print_json
+from typing import Any, Dict, List, NoReturn, Optional, Union, IO
+from rich.console import Console
 
 from esque.io.exceptions import (
-    EsqueIOHandlerConfigException,
     EsqueIOHandlerReadException,
     EsqueIOSerializerConfigNotSupported,
 )
-from esque.io.handlers.base import BaseHandler, HandlerConfig
+from esque.io.handlers.base import BaseHandler
 from esque.io.messages import BinaryMessage, MessageHeader, OutputMessage
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent
 
@@ -20,18 +18,17 @@ from esque.io.stream_events import PermanentEndOfStream, StreamEvent
 class ByteEncoding(Enum):
     BASE64 = "base64"
     UTF_8 = "utf-8"
-    HEX = "hex"
-    Byte = "byte"
 
 
 @dataclass()
-class PipeHandlerConfig(HandlerConfig):
+class PipeHandlerConfig:
+    file: Optional[IO[str]]
     key_encoding: Union[str, ByteEncoding] = ByteEncoding.UTF_8.value
     value_encoding: Union[str, ByteEncoding] = ByteEncoding.UTF_8.value
-    pretty_print: str = ""
+    pretty_print: bool = False
 
     def _validate_fields(self) -> List[str]:
-        problems = super()._validate_fields()
+        problems = []
         try:
             ByteEncoding(self.key_encoding)
         except ValueError:
@@ -49,24 +46,11 @@ class PipeHandlerConfig(HandlerConfig):
         return problems
 
 
-class PipeHandler(BaseHandler[PipeHandlerConfig]):
-    config_cls = PipeHandlerConfig
-
+class PipeHandler:
     def __init__(self, config: PipeHandlerConfig):
-        super().__init__(config)
-        self._stream = self._get_stream()
-        self._lbound = -1
-
-    def _get_stream(self) -> TextIO:
-        # pipe://stdout
-        if self.config.host == "stdin":
-            return sys.stdin
-        elif self.config.host == "stdout":
-            return sys.stdout
-        elif self.config.host == "stderr":
-            return sys.stderr
-        else:
-            raise EsqueIOHandlerConfigException(f"Unknown stream {self.config.host}")
+        self.config = config
+        self._console = Console(file=config.file)
+        self._left_bound = -1
 
     def get_serializer_configs(self) -> NoReturn:
         raise EsqueIOSerializerConfigNotSupported
@@ -77,7 +61,7 @@ class PipeHandler(BaseHandler[PipeHandlerConfig]):
     def write_message(self, message: Union[OutputMessage, StreamEvent]) -> None:
         if isinstance(message, StreamEvent):
             return
-        print_json(json.dumps(
+        self._console.print_json(json.dumps(
             {
                 "key": message.key.payload,
                 "value": message.value.payload,
@@ -93,7 +77,7 @@ class PipeHandler(BaseHandler[PipeHandlerConfig]):
     def read_message(self) -> Union[StreamEvent, BinaryMessage]:
         while True:
             msg = self._next_message()
-            if isinstance(msg, StreamEvent) or msg.offset >= self._lbound:
+            if isinstance(msg, StreamEvent) or msg.offset >= self._left_bound:
                 return msg
 
     def _next_message(self) -> Union[StreamEvent, BinaryMessage]:
@@ -125,23 +109,10 @@ class PipeHandler(BaseHandler[PipeHandlerConfig]):
         )
 
     def seek(self, position: int):
-        self._lbound = position
+        self._left_bound = position
 
     def close(self) -> None:
         pass  # stdin or stdout don't have to be closed
-
-
-def embed(input_value: Optional[bytes], encoding: Union[str, ByteEncoding]) -> Any:
-    encoding = ByteEncoding(encoding)
-
-    if input_value is None:
-        return None
-    if encoding == ByteEncoding.UTF_8:
-        return input_value.decode(encoding="UTF-8", errors="replace")
-    elif encoding == ByteEncoding.BASE64:
-        return base64.b64encode(input_value).decode(encoding="UTF-8", errors="replace")
-    elif encoding == ByteEncoding.HEX:
-        return input_value.hex()
 
 
 def extract(input_value: Optional[str], encoding: Union[str, ByteEncoding]) -> Optional[bytes]:
@@ -153,5 +124,3 @@ def extract(input_value: Optional[str], encoding: Union[str, ByteEncoding]) -> O
         return input_value.encode(encoding="UTF-8")
     elif encoding == ByteEncoding.BASE64:
         return base64.b64decode(input_value.encode(encoding="UTF-8"))
-    elif encoding == ByteEncoding.HEX:
-        return bytes.fromhex(input_value)

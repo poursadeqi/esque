@@ -16,10 +16,6 @@ class HandlerPair(NamedTuple):
     output_handler: BaseHandler
 
 
-def case_path_handler(path_handler_factory):
-    return HandlerPair(path_handler_factory(), path_handler_factory())
-
-
 def case_pipe_handler(pipe_handler_factory):
     return HandlerPair(pipe_handler_factory(), pipe_handler_factory())
 
@@ -27,5 +23,5 @@ def case_pipe_handler(pipe_handler_factory):
 @pytest.mark.integration
 def case_kafka_handler(topic_id: str, topic_factory: Callable[[int, str], Tuple[str, int]], partition_count: int):
     topic_factory(partition_count, topic_id)
-    config = KafkaHandlerConfig(scheme="kafka", host="", path=topic_id, send_timestamp="1")
+    config = KafkaHandlerConfig(topic=topic_id, send_timestamp="1")
     return HandlerPair(KafkaHandler(config), KafkaHandler(config))

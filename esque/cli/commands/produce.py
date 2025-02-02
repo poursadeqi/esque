@@ -178,7 +178,7 @@ def produce(
 
 
 def create_output_handler(to_context: str, topic: str):
-    output_handler = KafkaHandler(KafkaHandlerConfig(scheme="kafka", host=to_context, path=topic))
+    output_handler = KafkaHandler(KafkaHandlerConfig(context=to_context, topic=topic))
     return output_handler
 
 

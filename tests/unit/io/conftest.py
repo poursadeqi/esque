@@ -6,8 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pytest_cases import fixture
 
-from esque.io.data_types import NoData
-from esque.io.handlers.base import BaseHandler, HandlerConfig
+from esque.io.handlers.base import BaseHandler
 from esque.io.messages import BinaryMessage, MessagePayload, OutputMessage, MessageHeader
 from esque.io.pipeline import HandlerSerializerMessageReader, HandlerSerializerMessageWriter, PipelineBuilder
 from esque.io.serializers.base import MessageSerializer
@@ -16,19 +15,18 @@ from esque.io.stream_events import PermanentEndOfStream, StreamEvent, TemporaryE
 
 
 @dataclasses.dataclass()
-class DummyHandlerConfig(HandlerConfig):
+class DummyHandlerConfig:
     pass
 
 
 class DummyHandler(BaseHandler):
-    config_cls = DummyHandlerConfig
-
     def __init__(self, config: DummyHandlerConfig):
-        super().__init__(config=config)
+        super.__init__()
+        self.config = config
         self._messages: List[Optional[BinaryMessage]] = []
         self._serializer_configs: Tuple[Dict[str, Any], Dict[str, Any]] = ({}, {})
         self._peof_counter = 0
-        self._lbound = 0
+        self._left_bound = 0
 
     def get_serializer_configs(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         return self._serializer_configs
@@ -44,7 +42,7 @@ class DummyHandler(BaseHandler):
     def read_message(self) -> Union[BinaryMessage, StreamEvent]:
         while True:
             msg = self._next_message()
-            if isinstance(msg, StreamEvent) or msg.offset >= self._lbound:
+            if isinstance(msg, StreamEvent) or msg.offset >= self._left_bound:
                 return msg
 
     def _next_message(self) -> Union[StreamEvent, BinaryMessage]:
@@ -75,7 +73,7 @@ class DummyHandler(BaseHandler):
         return cls(config=DummyHandlerConfig(host="", path="", scheme="dummy"))
 
     def seek(self, position: int):
-        self._lbound = position
+        self._left_bound = position
 
     def close(self) -> None:
         pass  # nothing to do
@@ -145,9 +143,63 @@ def binary_messages() -> List[BinaryMessage]:
     ]
 
 
+@fixture()
+def output_messages() -> List[OutputMessage]:
+    return [
+        OutputMessage(
+            key=MessagePayload(payload="foo1"),
+            value=MessagePayload(payload="bar1"),
+            partition=0,
+            offset=0,
+            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=0, tzinfo=datetime.timezone.utc),
+            headers=[MessageHeader("a", "b")],
+        ),
+        OutputMessage(
+            key=MessagePayload(payload="foo2"),
+            value=MessagePayload(payload="bar2"),
+            partition=0,
+            offset=1,
+            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=1, tzinfo=datetime.timezone.utc),
+            headers=[MessageHeader("c", None)],
+        ),
+        OutputMessage(
+            key=MessagePayload(payload="foo3"),
+            value=MessagePayload(payload="bar3"),
+            partition=1,
+            offset=0,
+            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=2, tzinfo=datetime.timezone.utc),
+            headers=[],
+        ),
+        OutputMessage(
+            key=MessagePayload(payload="foo4"),
+            value=MessagePayload(payload="bar4"),
+            partition=1,
+            offset=1,
+            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=3, tzinfo=datetime.timezone.utc),
+            headers=[],
+        ),
+        OutputMessage(
+            key=MessagePayload(payload="foo5"),
+            value=MessagePayload(payload="bar5"),
+            partition=1,
+            offset=2,
+            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=4, tzinfo=datetime.timezone.utc),
+            headers=[],
+        ),
+        OutputMessage(
+            key=MessagePayload(payload="foo6"),
+            value=MessagePayload(payload="bar6"),
+            partition=1,
+            offset=3,
+            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=5, tzinfo=datetime.timezone.utc),
+            headers=[],
+        ),
+    ]
+
+
 @fixture(scope="session")
 def no_data() -> MessagePayload:
-    return MessagePayload(None, NoData())
+    return MessagePayload()
 
 
 @fixture()
@@ -158,7 +210,7 @@ def partition_count(binary_messages) -> int:
 
 @fixture()
 def string_messages(
-    binary_messages: List[BinaryMessage], string_message_serializer: MessageSerializer
+        binary_messages: List[BinaryMessage], string_message_serializer: MessageSerializer
 ) -> List[OutputMessage]:
     return list(string_message_serializer.deserialize_many(binary_messages))
 
@@ -211,9 +263,9 @@ def dummy_message_writer() -> DummyMessageWriter:
 
 @fixture
 def prepared_builder(
-    dummy_message_reader: DummyMessageReader,
-    dummy_message_writer: DummyMessageWriter,
-    binary_messages: List[BinaryMessage],
+        dummy_message_reader: DummyMessageReader,
+        dummy_message_writer: DummyMessageWriter,
+        binary_messages: List[BinaryMessage],
 ) -> PipelineBuilder:
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)

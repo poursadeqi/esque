@@ -1,7 +1,6 @@
 from pytest_cases import parametrize
 
 from esque.io.exceptions import EsqueIOHandlerConfigException
-from esque.io.handlers.base import HandlerConfig
 from tests.unit.io.conftest import DummyHandler, DummyHandlerConfig
 
 

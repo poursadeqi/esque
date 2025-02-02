@@ -1,63 +1,21 @@
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, Dict, Generic, Iterable, List, Tuple, Type, TypeVar, Union
+from typing import Any, ClassVar, Dict, Generic, Iterable, List, Tuple, Type, TypeVar, Union, IO, Optional
 
 from esque.io.exceptions import EsqueIOHandlerConfigException
-from esque.io.messages import BinaryMessage
+from esque.io.messages import BinaryMessage, OutputMessage
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent
 
 H = TypeVar("H", bound="BaseHandler")
-HC = TypeVar("HC", bound="HandlerConfig")
 
 
-@dataclasses.dataclass()
-class HandlerConfig:
-    host: str
-    path: str
-    scheme: str
-
-    def __post_init__(self):
-        self._validate()
-
-    def _validate(self):
-        problems: List[str] = self._validate_fields()
-        if problems:
-            raise EsqueIOHandlerConfigException("Handler config validation failed: \n" + "\n".join(problems))
-
-    def _validate_fields(self) -> List[str]:
-        problems = []
-        if self.host is None:
-            problems.append("host cannot be None")
-        if self.path is None:
-            problems.append("path cannot be None")
-        if self.scheme is None:
-            problems.append("scheme cannot be None")
-        return problems
-
-
-class BaseHandler(ABC, Generic[HC]):
-
-    config_cls: ClassVar[Type[HC]] = HandlerConfig
-    config: HC
-
-    def __init__(self, config: HC):
+class BaseHandler(ABC):
+    def __init__(self):
         """
         Base class for all Esque IO handlers. A handler is responsible for writing and reading messages
         to and from a source. The handler is unaware of the underlying message's format and treats all
         sources as binary. It may support persisting the serializer config for easier data retrieval.
-
-        :param config:
         """
-        self.config = config
-        self._assert_correct_config_type()
-
-    def _assert_correct_config_type(self):
-        if not isinstance(self.config, self.config_cls):
-            raise EsqueIOHandlerConfigException(
-                f"Invalid type for the handler config. "
-                f"Expected: {self.config_cls.__name__}, "
-                f"provided: {type(self.config).__name__}"
-            )
 
     @abstractmethod
     def seek(self, position: int):
@@ -104,7 +62,7 @@ class BaseHandler(ABC, Generic[HC]):
         """
         raise NotImplementedError
 
-    def write_many_messages(self, message_stream: Iterable[Union[BinaryMessage, StreamEvent]]) -> None:
+    def write_many_messages(self, message_stream: Iterable[Union[OutputMessage, StreamEvent]]) -> None:
         """
         Write all messages from the iterable `message_stream` to this handler's source.
         The handler may choose which action to take upon receiving any :class:`StreamEvent`
@@ -112,8 +70,8 @@ class BaseHandler(ABC, Generic[HC]):
 
         :param message_stream: The messages that are supposed to be written.
         """
-        for binary_message in message_stream:
-            self.write_message(binary_message)
+        for message in message_stream:
+            self.write_message(message)
 
     @abstractmethod
     def read_message(self) -> Union[BinaryMessage, StreamEvent]:

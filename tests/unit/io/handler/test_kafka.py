@@ -39,9 +39,8 @@ def producer_cls_mock():
 def kafka_handler(unittest_config, topic_id: str, request):
     return KafkaHandler(
         KafkaHandlerConfig(
-            host="docker",
-            path=topic_id,
-            scheme="kafka",
+            context="docker",
+            topic=topic_id,
             consumer_group_id="test_consumer",
             send_timestamp=request.param,
         )

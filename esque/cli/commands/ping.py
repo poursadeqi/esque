@@ -52,12 +52,12 @@ def ping(state: State, times: int, wait: int):
 
     click.echo("Initializing producer.")
     output_handler = KafkaHandler(
-        KafkaHandlerConfig(scheme="kafka", host=state.config.current_context, path=PING_TOPIC)
+        KafkaHandlerConfig(context=state.config.current_context, topic=PING_TOPIC)
     )
     output_handler.write_message(create_tombstone_message(ping_id))
 
     input_handler = KafkaHandler(
-        KafkaHandlerConfig(scheme="kafka", host=state.config.current_context, path=PING_TOPIC)
+        KafkaHandlerConfig(context=state.config.current_context, topic=PING_TOPIC)
     )
     input_stream = filter(key_matches(ping_id), skip_stream_events(input_handler.message_stream()))
     message_iterator = iter(input_stream)
