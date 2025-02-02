@@ -46,8 +46,9 @@ class PipeHandlerConfig:
         return problems
 
 
-class PipeHandler:
+class PipeHandler(BaseHandler):
     def __init__(self, config: PipeHandlerConfig):
+        super().__init__()
         self.config = config
         self._console = Console(file=config.file)
         self._left_bound = -1
@@ -83,7 +84,7 @@ class PipeHandler:
     def _next_message(self) -> Union[StreamEvent, BinaryMessage]:
         line = ""
         while not line.strip():
-            line = self._stream.readline()
+            line = self.config.file.readline()
             if line == "":
                 return PermanentEndOfStream("End of pipe reached")
 

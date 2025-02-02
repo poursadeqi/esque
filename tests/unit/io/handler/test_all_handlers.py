@@ -56,6 +56,8 @@ def test_write_many_stream_events(binary_messages: List[BinaryMessage], output_h
 @parametrize_with_cases("input_handler, output_handler")
 def test_seek(output_messages: List[OutputMessage], input_handler: BaseHandler, output_handler: BaseHandler):
     seek_offset = 2
+    output_handler.write_many_messages(output_messages)
+    output_handler.close()
 
     input_handler.seek(seek_offset)
     actual_messages = list(input_handler.binary_message_stream())

@@ -52,7 +52,7 @@ class BaseHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_message(self, binary_message: Union[BinaryMessage, StreamEvent]) -> None:
+    def write_message(self, binary_message: Union[OutputMessage, StreamEvent]) -> None:
         """
         Write the message from `binary_message` to this handler's source.
         The handler may choose which action to take upon receiving any :class:`StreamEvent`
