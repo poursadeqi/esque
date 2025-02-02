@@ -1,12 +1,12 @@
 from esque.io.serializers import (
+    BinarySerializer,
     DataSerializer,
     JsonSerializer,
-    BinarySerializer,
     RegistryAvroSerializer,
     StringSerializer,
 )
-from esque.io.serializers.json import JsonSerializerConfig
 from esque.io.serializers.binary import BinarySerializerConfig
+from esque.io.serializers.json import JsonSerializerConfig
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 

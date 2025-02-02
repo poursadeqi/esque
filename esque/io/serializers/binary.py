@@ -1,9 +1,9 @@
 import dataclasses
+from base64 import b64encode
 from typing import Optional
 
 from esque.io.messages import MessagePayload
 from esque.io.serializers.base import DataSerializer, SerializerConfig
-from base64 import b64encode
 
 
 @dataclasses.dataclass()

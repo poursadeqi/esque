@@ -3,13 +3,11 @@ import datetime
 import json
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, NoReturn, Optional, Union, IO
+from typing import IO, Any, Dict, List, NoReturn, Optional, Union
+
 from rich.console import Console
 
-from esque.io.exceptions import (
-    EsqueIOHandlerReadException,
-    EsqueIOSerializerConfigNotSupported,
-)
+from esque.io.exceptions import EsqueIOHandlerReadException, EsqueIOSerializerConfigNotSupported
 from esque.io.handlers.base import BaseHandler
 from esque.io.messages import BinaryMessage, MessageHeader, OutputMessage
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent

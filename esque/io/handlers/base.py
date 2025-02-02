@@ -1,8 +1,6 @@
-import dataclasses
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, Dict, Generic, Iterable, List, Tuple, Type, TypeVar, Union, IO, Optional
+from typing import Any, Dict, Iterable, Tuple, TypeVar, Union
 
-from esque.io.exceptions import EsqueIOHandlerConfigException
 from esque.io.messages import BinaryMessage, OutputMessage
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent
 

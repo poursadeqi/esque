@@ -1,14 +1,15 @@
 import dataclasses
 import importlib
+import sys
 from typing import Optional, Type
+
+from google.protobuf.json_format import MessageToDict
+from google.protobuf.message import Message
 
 from esque.io.data_types import UnknownDataType
 from esque.io.messages import MessagePayload
 from esque.io.serializers import SerializerConfig
 from esque.io.serializers.base import DataSerializer
-from google.protobuf.json_format import MessageToDict
-from google.protobuf.message import Message
-import sys
 
 
 @dataclasses.dataclass

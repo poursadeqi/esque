@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 
 import click
@@ -10,16 +11,15 @@ from esque.io.handlers import KafkaHandler
 from esque.io.handlers.kafka import KafkaHandlerConfig
 from esque.io.handlers.pipe import PipeHandler, PipeHandlerConfig
 from esque.io.pipeline import PipelineBuilder
-from esque.io.serializers import JsonSerializer, BinarySerializer, RegistryAvroSerializer, StringSerializer
+from esque.io.serializers import BinarySerializer, JsonSerializer, RegistryAvroSerializer, StringSerializer
 from esque.io.serializers.base import MessageSerializer
-from esque.io.serializers.json import JsonSerializerConfig
 from esque.io.serializers.binary import BinarySerializerConfig
+from esque.io.serializers.json import JsonSerializerConfig
+from esque.io.serializers.proto import ProtoSerializer, ProtoSerializerConfig
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
-from esque.io.serializers.proto import ProtoSerializer, ProtoSerializerConfig
 from esque.io.serializers.struct import StructSerializer, StructSerializerConfig
 from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_timestamp, yield_only_matching_messages
-from dataclasses import dataclass
 
 
 @dataclass

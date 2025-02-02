@@ -1,10 +1,10 @@
 import dataclasses
+from struct import unpack
 from typing import Optional
 
-from esque.io.data_types import NoData, UnknownDataType
+from esque.io.data_types import UnknownDataType
 from esque.io.messages import MessagePayload
 from esque.io.serializers.base import DataSerializer, SerializerConfig
-from struct import unpack
 
 
 @dataclasses.dataclass()

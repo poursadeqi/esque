@@ -50,17 +50,18 @@ yamale = "6.0.0"
 toml = "^0.10.0"
 more-itertools = "^10.6"
 protobuf = "^5.29.3"
+pre-commit = "^4.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "~8"
 pytest-mock = "^3.11"
 pytest-cov = "^6.0.0"
-flake8 = "^3.7"
+flake8 = "7.1.1"
 black = { version = "25.1.0", allow-prereleases = true }
 isort = { version = "^6.0.0", extras = ["pyproject"] }
-bandit = "^1.8"
-coveralls = "^4.0"
-pytest-cases = "^3.8.6"
+bandit = "1.8.2"
+coveralls = "4.0.1"
+pytest-cases = "3.8.6"
 
 [tool.black]
 line-length = 119

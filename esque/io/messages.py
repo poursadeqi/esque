@@ -1,8 +1,6 @@
 import dataclasses
 import datetime
-from typing import Any, ClassVar, List, NamedTuple, Optional, Union
-
-from esque.io.data_types import DataType, NoData
+from typing import List, NamedTuple, Optional, Union
 
 
 class MessageHeader(NamedTuple):
