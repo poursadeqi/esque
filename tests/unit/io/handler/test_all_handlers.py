@@ -11,7 +11,7 @@ from esque.io.stream_events import StreamEvent, TemporaryEndOfPartition
 
 @parametrize_with_cases("input_handler, output_handler")
 def test_write_read_message(
-        binary_messages: List[BinaryMessage], input_handler: BaseHandler, output_handler: BaseHandler
+    binary_messages: List[BinaryMessage], input_handler: BaseHandler, output_handler: BaseHandler
 ):
     for msg in binary_messages[:2]:
         output_handler.write_message(msg)
@@ -31,7 +31,7 @@ def test_write_read_message(
 
 @parametrize_with_cases("input_handler, output_handler")
 def test_write_read_many_messages(
-        binary_messages: List[BinaryMessage], input_handler: BaseHandler, output_handler: BaseHandler
+    binary_messages: List[BinaryMessage], input_handler: BaseHandler, output_handler: BaseHandler
 ):
     output_handler.write_many_messages(binary_messages)
     output_handler.close()

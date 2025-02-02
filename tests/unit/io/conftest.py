@@ -210,7 +210,7 @@ def partition_count(binary_messages) -> int:
 
 @fixture()
 def string_messages(
-        binary_messages: List[BinaryMessage], string_message_serializer: MessageSerializer
+    binary_messages: List[BinaryMessage], string_message_serializer: MessageSerializer
 ) -> List[OutputMessage]:
     return list(string_message_serializer.deserialize_many(binary_messages))
 
@@ -263,9 +263,9 @@ def dummy_message_writer() -> DummyMessageWriter:
 
 @fixture
 def prepared_builder(
-        dummy_message_reader: DummyMessageReader,
-        dummy_message_writer: DummyMessageWriter,
-        binary_messages: List[BinaryMessage],
+    dummy_message_reader: DummyMessageReader,
+    dummy_message_writer: DummyMessageWriter,
+    binary_messages: List[BinaryMessage],
 ) -> PipelineBuilder:
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)

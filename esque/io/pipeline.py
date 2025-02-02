@@ -115,7 +115,7 @@ class UriConfig:
     def _strip_prefix(self, key: str) -> Tuple[str, str]:
         for prefix in self.ALL_PREFIXES:
             if key.startswith(prefix):
-                return prefix, key[len(prefix):]
+                return prefix, key[len(prefix) :]
 
     def _add_param(self, prefix: str, key: str, value: str):
         if prefix == self.HANDLER_PARAM_PREFIX:
@@ -187,10 +187,10 @@ class Pipeline:
     _stream_decorators: List[Callable[[Iterable], Iterable]]
 
     def __init__(
-            self,
-            input_element: MessageReader,
-            output_element: MessageWriter,
-            stream_decorators: List[Callable[[Iterable], Iterable]],
+        self,
+        input_element: MessageReader,
+        output_element: MessageWriter,
+        stream_decorators: List[Callable[[Iterable], Iterable]],
     ):
         self._input_element = input_element
         self._output_element = output_element

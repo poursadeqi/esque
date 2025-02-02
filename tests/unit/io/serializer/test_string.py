@@ -14,7 +14,9 @@ def serializer_config(request) -> StringSerializerConfig:
 def test_string_serializer(serializer_config):
     string_serializer: StringSerializer = StringSerializer(config=serializer_config)
     raw_message: bytes = "Übung".encode(encoding=serializer_config.encoding)
-    expected_deserialized_message: MessagePayload = MessagePayload(payload="Übung", data_type=string_serializer.data_type)
+    expected_deserialized_message: MessagePayload = MessagePayload(
+        payload="Übung", data_type=string_serializer.data_type
+    )
     deserialized_message: MessagePayload = string_serializer.deserialize(raw_message)
     assert deserialized_message == expected_deserialized_message
     serializer_message: bytes = string_serializer.serialize(deserialized_message)

@@ -199,7 +199,7 @@ class KafkaHandler:
 
     @staticmethod
     def _confluent_to_io_headers(
-            confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]]
+        confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]],
     ) -> List[MessageHeader]:
         io_headers: List[MessageHeader] = []
 

@@ -84,7 +84,9 @@ def registry_avro_serializer(registry_avro_config: RegistryAvroSerializerConfig)
     return RegistryAvroSerializer(registry_avro_config)
 
 
-def test_registry_client_same_schema_same_id(registry_avro_config: RegistryAvroSerializerConfig, avro_type: MessagePayload):
+def test_registry_client_same_schema_same_id(
+    registry_avro_config: RegistryAvroSerializerConfig, avro_type: MessagePayload
+):
     client1 = SchemaRegistryClient.from_config(registry_avro_config)
     schema_id1 = client1.get_or_create_id_for_avro_type(avro_type)
 

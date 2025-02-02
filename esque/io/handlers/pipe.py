@@ -62,16 +62,17 @@ class PipeHandler(BaseHandler):
     def write_message(self, message: Union[OutputMessage, StreamEvent]) -> None:
         if isinstance(message, StreamEvent):
             return
-        self._console.print_json(json.dumps(
-            {
-                "key": message.key.payload,
-                "value": message.value.payload,
-                "partition": message.partition,
-                "offset": message.offset,
-                "timestamp": message.timestamp.isoformat(),
-                "headers": [{"key": h.key, "value": h.value} for h in message.headers],
-            }
-        ),
+        self._console.print_json(
+            json.dumps(
+                {
+                    "key": message.key.payload,
+                    "value": message.value.payload,
+                    "partition": message.partition,
+                    "offset": message.offset,
+                    "timestamp": message.timestamp.isoformat(),
+                    "headers": [{"key": h.key, "value": h.value} for h in message.headers],
+                }
+            ),
             indent=2 if self.config.pretty_print else None,
         )
 

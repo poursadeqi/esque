@@ -60,9 +60,11 @@ def test_write_single_message(
         topic=topic_id,
         partition=message.partition,
         timestamp=int(message.timestamp.timestamp() * 1000) if kafka_handler.config.send_timestamp else 0,
-        headers=[(h.key, h.value.encode("utf-8") if h.value is not None else None) for h in message.headers]
-        if message.headers
-        else None,
+        headers=(
+            [(h.key, h.value.encode("utf-8") if h.value is not None else None) for h in message.headers]
+            if message.headers
+            else None
+        ),
         on_delivery=kafka_handler._delivery_callback,
     )
     producer_mock.flush.assert_called_once()
@@ -81,9 +83,11 @@ def test_write_many_messages(
             topic=topic_id,
             partition=message.partition,
             timestamp=int(message.timestamp.timestamp() * 1000) if kafka_handler.config.send_timestamp else 0,
-            headers=[(h.key, h.value.encode("utf-8") if h.value is not None else None) for h in message.headers]
-            if message.headers
-            else None,
+            headers=(
+                [(h.key, h.value.encode("utf-8") if h.value is not None else None) for h in message.headers]
+                if message.headers
+                else None
+            ),
             on_delivery=kafka_handler._delivery_callback,
         )
     producer_mock.flush.assert_called_once()

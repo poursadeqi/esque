@@ -59,7 +59,9 @@ def test_create_pipeline_with_handler_and_serializer_output(
 
 
 def test_create_pipeline_with_message_reader(
-    dummy_message_reader: DummyMessageReader, binary_messages: List[BinaryMessage], string_messages: List[OutputMessage]
+    dummy_message_reader: DummyMessageReader,
+    binary_messages: List[BinaryMessage],
+    string_messages: List[OutputMessage],
 ):
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)
