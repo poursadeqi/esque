@@ -1,4 +1,5 @@
 import pathlib
+import sys
 
 import click
 
@@ -7,9 +8,8 @@ from esque.cli.helpers import ensure_approval
 from esque.cli.options import State, default_options
 from esque.cli.output import blue_bold, green_bold
 from esque.cluster import Cluster
-from esque.io.handlers import BaseHandler, KafkaHandler, PathHandler, PipeHandler
+from esque.io.handlers import BaseHandler, KafkaHandler, PipeHandler
 from esque.io.handlers.kafka import KafkaHandlerConfig
-from esque.io.handlers.path import PathHandlerConfig
 from esque.io.handlers.pipe import PipeHandlerConfig
 from esque.io.pipeline import PipelineBuilder
 from esque.io.serializers import BinarySerializer, RegistryAvroSerializer, StringSerializer
@@ -60,7 +60,7 @@ from esque.resources.topic import Topic
     "-b",
     "--binary",
     help="Set this flag if the topic contains binary data. Or the data should not be (de-)serialized. "
-    "This flag is mutually exclusive with the --avro flag",
+         "This flag is mutually exclusive with the --avro flag",
     default=False,
     is_flag=True,
 )
@@ -72,21 +72,21 @@ from esque.resources.topic import Topic
     "--ignore-errors",
     "ignore_stdin_errors",
     help="Only when reading from STDIN. If JSON validation fails, write the malformed JSON as a string in message value"
-    " (without key and specified partition assignment).",
+         " (without key and specified partition assignment).",
     default=False,
     is_flag=True,
 )
 @default_options
 def produce(
-    state: State,
-    topic: str,
-    to_context: str,
-    directory: str,
-    avro: bool,
-    binary: bool,
-    match: str = None,
-    read_from_stdin: bool = False,
-    ignore_stdin_errors: bool = False,
+        state: State,
+        topic: str,
+        to_context: str,
+        directory: str,
+        avro: bool,
+        binary: bool,
+        match: str = None,
+        read_from_stdin: bool = False,
+        ignore_stdin_errors: bool = False,
 ):
     """Produce messages to a topic.
 
@@ -145,7 +145,7 @@ def produce(
 
     builder = PipelineBuilder()
 
-    input_handler = create_input_handler(directory, read_from_stdin)
+    input_handler = create_input_handler()
     builder.with_input_handler(input_handler)
 
     input_message_serializer = create_input_message_serializer(directory, avro, binary)
@@ -178,8 +178,7 @@ def produce(
 
 
 def create_output_handler(to_context: str, topic: str):
-    output_handler = KafkaHandler(KafkaHandlerConfig(context=to_context, topic=topic))
-    return output_handler
+    return KafkaHandler(KafkaHandlerConfig(context=to_context, topic=topic))
 
 
 def create_output_serializer(avro: bool, binary: bool, topic: str, state: State) -> MessageSerializer:
@@ -198,15 +197,8 @@ def create_output_serializer(avro: bool, binary: bool, topic: str, state: State)
     return message_serializer
 
 
-def create_input_handler(directory: pathlib.Path, read_from_stdin: bool) -> BaseHandler:
-    if read_from_stdin:
-        handler = PipeHandler(PipeHandlerConfig(scheme="pipe", host="stdin", path=""))
-    else:
-        if not directory:
-            raise ValueError("Need to provide a directory to read from!")
-        handler = PathHandler(PathHandlerConfig(scheme="path", host="", path=str(directory)))
-        click.echo(f"Reading data from {blue_bold(str(directory))}.")
-    return handler
+def create_input_handler() -> BaseHandler:
+    return PipeHandler(PipeHandlerConfig(file=sys.stdin))
 
 
 def create_input_message_serializer(directory: pathlib.Path, avro: bool, binary: bool) -> MessageSerializer:

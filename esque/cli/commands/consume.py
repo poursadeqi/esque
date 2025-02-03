@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass
 from typing import Optional
 
@@ -65,8 +66,8 @@ class ConsumeOptions:
 @click.option(
     "--last/--first",
     help="Start consuming from the earliest or latest offset in the topic."
-    "Latest means at the end of the topic _not including_ the last message(s),"
-    "so if no new data is coming in nothing will be consumed.",
+         "Latest means at the end of the topic _not including_ the last message(s),"
+         "so if no new data is coming in nothing will be consumed.",
     default=False,
 )
 @click.option("--key-struct-format", help="Set this flag to set encoding for key", type=str)
@@ -99,8 +100,8 @@ class ConsumeOptions:
 @click.option(
     "--preserve-order",
     help="Preserve the order of messages, regardless of their partition. "
-    "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
-    "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
+         "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
+         "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
     default=False,
     is_flag=True,
 )
@@ -108,7 +109,7 @@ class ConsumeOptions:
     "-p",
     "--pretty-print",
     help="Use multiple lines to represent each kafka message instead of putting every JSON object into a single "
-    "line. Only has an effect when consuming to stdout.",
+         "line. Only has an effect when consuming to stdout.",
     default=False,
     is_flag=True,
 )
@@ -211,12 +212,10 @@ def create_messages_serializer(consumer_options: ConsumeOptions) -> MessageSeria
 def create_output_handler(consumer_options: ConsumeOptions):
     return PipeHandler(
         PipeHandlerConfig(
-            scheme="pipe",
-            host="stdout",
-            path="",
+            file=sys.stdout,
             key_encoding="utf-8",
             value_encoding="utf-8",
-            pretty_print="1" if consumer_options.pretty_print else "",
+            pretty_print=consumer_options.pretty_print
         )
     )
 
