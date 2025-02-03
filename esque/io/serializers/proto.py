@@ -44,5 +44,8 @@ class ProtoSerializer(DataSerializer[ProtoSerializerConfig]):
         message = self.config.get_message_class()()
         message.ParseFromString(raw_data)
 
-        payload = MessageToDict(message, preserving_proto_field_name=True)
+        payload = MessageToDict(message,
+                                preserving_proto_field_name=True,
+                                always_print_fields_with_no_presence=True
+                                )
         return MessagePayload(payload=payload)
