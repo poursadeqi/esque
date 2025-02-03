@@ -25,7 +25,7 @@ def now_utc() -> datetime.datetime:
 
 
 @dataclasses.dataclass
-class OutputMessage:
+class PrintableMessage:
     key: MessagePayload
     value: MessagePayload
     partition: int = -1

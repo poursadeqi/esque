@@ -1,5 +1,6 @@
 import enum
 import functools
+import sys
 import urllib.parse
 from abc import ABC, abstractmethod
 from contextlib import closing
@@ -8,7 +9,7 @@ from typing import Callable, ClassVar, Dict, Iterable, List, NamedTuple, Optiona
 from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState, ExqueIOInvalidURIException
 from esque.io.handlers import BaseHandler, PipeHandler, create_handler
 from esque.io.handlers.pipe import PipeHandlerConfig
-from esque.io.messages import OutputMessage
+from esque.io.messages import PrintableMessage
 from esque.io.serializers import StringSerializer, create_serializer
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.string import StringSerializerConfig
@@ -18,11 +19,11 @@ from esque.io.stream_events import StreamEvent
 
 class MessageReader(ABC):
     @abstractmethod
-    def read_message(self) -> OutputMessage:
+    def read_message(self) -> PrintableMessage:
         raise NotImplementedError
 
     @abstractmethod
-    def message_stream(self) -> Iterable[OutputMessage]:
+    def message_stream(self) -> Iterable[PrintableMessage]:
         raise NotImplementedError
 
     @abstractmethod
@@ -115,7 +116,7 @@ class UriConfig:
     def _strip_prefix(self, key: str) -> Tuple[str, str]:
         for prefix in self.ALL_PREFIXES:
             if key.startswith(prefix):
-                return prefix, key[len(prefix) :]
+                return prefix, key[len(prefix):]
 
     def _add_param(self, prefix: str, key: str, value: str):
         if prefix == self.HANDLER_PARAM_PREFIX:
@@ -131,7 +132,7 @@ class UriConfig:
 
 class MessageWriter(ABC):
     @abstractmethod
-    def write_many_messages(self, message_stream: Iterable[Union[OutputMessage, StreamEvent]]):
+    def write_many_messages(self, message_stream: Iterable[Union[PrintableMessage, StreamEvent]]):
         raise NotImplementedError
 
     @abstractmethod
@@ -147,13 +148,13 @@ class HandlerSerializerMessageReader(MessageReader):
         self._handler = handler
         self._message_serializer = message_serializer
 
-    def read_message(self) -> Union[OutputMessage, StreamEvent]:
+    def read_message(self) -> Union[PrintableMessage, StreamEvent]:
         msg = self._handler.read_message()
         if isinstance(msg, StreamEvent):
             return msg
         return self._message_serializer.deserialize(binary_message=msg)
 
-    def message_stream(self) -> Iterable[OutputMessage]:
+    def message_stream(self) -> Iterable[PrintableMessage]:
         return self._message_serializer.deserialize_many(binary_message_stream=self._handler.binary_message_stream())
 
     def seek(self, position: int):
@@ -171,10 +172,10 @@ class HandlerSerializerMessageWriter(MessageWriter):
         self._handler = handler
         self._message_serializer = message_serializer
 
-    def write_message(self, message: OutputMessage):
+    def write_message(self, message: PrintableMessage):
         self._handler.write_message(binary_message=message)
 
-    def write_many_messages(self, message_stream: Iterable[Union[OutputMessage, StreamEvent]]):
+    def write_many_messages(self, message_stream: Iterable[Union[PrintableMessage, StreamEvent]]):
         self._handler.write_many_messages(message_stream=message_stream)
 
     def close(self):
@@ -187,10 +188,10 @@ class Pipeline:
     _stream_decorators: List[Callable[[Iterable], Iterable]]
 
     def __init__(
-        self,
-        input_element: MessageReader,
-        output_element: MessageWriter,
-        stream_decorators: List[Callable[[Iterable], Iterable]],
+            self,
+            input_element: MessageReader,
+            output_element: MessageWriter,
+            stream_decorators: List[Callable[[Iterable], Iterable]],
     ):
         self._input_element = input_element
         self._output_element = output_element
@@ -209,7 +210,7 @@ class Pipeline:
         with closing(self):
             self._output_element.write_many_messages(self.decorated_message_stream())
 
-    def write_many_messages(self, message_stream: Iterable[Union[OutputMessage, StreamEvent]]):
+    def write_many_messages(self, message_stream: Iterable[Union[PrintableMessage, StreamEvent]]):
         self._output_element.write_many_messages(message_stream=message_stream)
 
     def close(self) -> None:
@@ -387,7 +388,7 @@ class PipelineBuilder:
             self._errors.append("Input serializer and handler were supplied.")
 
     def _create_default_input_handler(self) -> BaseHandler:
-        return PipeHandler(PipeHandlerConfig(host="stdin", path="", scheme="pipe"))
+        return PipeHandler(PipeHandlerConfig(file=sys.stdout))
 
     def _create_default_input_serializer(self) -> MessageSerializer:
         serializer = StringSerializer(config=StringSerializerConfig(scheme="str"))
@@ -442,7 +443,7 @@ class PipelineBuilder:
             self._errors.append("Output serializer and handler were supplied.")
 
     def _create_default_output_handler(self) -> BaseHandler:
-        return PipeHandler(PipeHandlerConfig(host="stdout", path="", scheme="pipe"))
+        return PipeHandler(PipeHandlerConfig(file=sys.stdout))
 
     _create_default_output_serializer = _create_default_input_serializer
 

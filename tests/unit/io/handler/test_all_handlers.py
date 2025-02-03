@@ -4,29 +4,29 @@ from typing import List
 from pytest_cases import parametrize_with_cases
 
 from esque.io.handlers import BaseHandler
-from esque.io.messages import BinaryMessage, OutputMessage
+from esque.io.messages import BinaryMessage, PrintableMessage
 from esque.io.stream_decorators import skip_stream_events, stop_at_temporary_end_of_all_stream_partitions
 from esque.io.stream_events import StreamEvent, TemporaryEndOfPartition
 
 
 @parametrize_with_cases("input_handler, output_handler")
 def test_write_read_message(
-    binary_messages: List[BinaryMessage], input_handler: BaseHandler, output_handler: BaseHandler
+    printable_messages: List[PrintableMessage], input_handler: BaseHandler, output_handler: BaseHandler
 ):
-    for msg in binary_messages[:2]:
+    for msg in printable_messages[:2]:
         output_handler.write_message(msg)
     output_handler.close()
 
-    messages_retrieved: List[BinaryMessage] = []
+    messages_retrieved: List[PrintableMessage] = []
     for _ in range(2):
         while True:
             actual_message = input_handler.read_message()
-            if isinstance(actual_message, BinaryMessage):
+            if isinstance(actual_message, PrintableMessage):
                 break
         messages_retrieved.append(actual_message)
 
     messages_retrieved.sort(key=attrgetter("timestamp"))
-    assert messages_retrieved == binary_messages[:2]
+    assert messages_retrieved == printable_messages[:2]
 
 
 @parametrize_with_cases("input_handler, output_handler")
@@ -54,9 +54,9 @@ def test_write_many_stream_events(binary_messages: List[BinaryMessage], output_h
 
 
 @parametrize_with_cases("input_handler, output_handler")
-def test_seek(output_messages: List[OutputMessage], input_handler: BaseHandler, output_handler: BaseHandler):
+def test_seek(printable_messages, input_handler: BaseHandler, output_handler: BaseHandler):
     seek_offset = 2
-    output_handler.write_many_messages(output_messages)
+    output_handler.write_many_messages(printable_messages)
     output_handler.close()
 
     input_handler.seek(seek_offset)
@@ -64,4 +64,4 @@ def test_seek(output_messages: List[OutputMessage], input_handler: BaseHandler, 
     input_handler.close()
 
     actual_messages.sort(key=attrgetter("timestamp"))
-    assert actual_messages == [msg for msg in output_messages if msg.offset >= seek_offset]
+    assert actual_messages == [msg for msg in printable_messages if msg.offset >= seek_offset]

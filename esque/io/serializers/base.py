@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import ClassVar, Generic, Iterable, List, Optional, Type, TypeVar, Union
 
 from esque.io.exceptions import EsqueIOSerializerConfigException
-from esque.io.messages import BinaryMessage, MessagePayload, OutputMessage
+from esque.io.messages import BinaryMessage, MessagePayload, PrintableMessage
 from esque.io.stream_events import StreamEvent
 
 SC = TypeVar("SC", bound="SerializerConfig")
@@ -59,7 +59,7 @@ class MessageSerializer:
         self._key_serializer = key_serializer
         self._value_serializer = value_serializer if value_serializer else key_serializer
 
-    def serialize(self, message: Union[OutputMessage, StreamEvent]) -> Union[BinaryMessage, StreamEvent]:
+    def serialize(self, message: Union[PrintableMessage, StreamEvent]) -> Union[BinaryMessage, StreamEvent]:
         if isinstance(message, StreamEvent):
             return message
         key_data = self._key_serializer.serialize(message.key)
@@ -74,17 +74,17 @@ class MessageSerializer:
         )
 
     def serialize_many(
-        self, messages: Iterable[Union[OutputMessage, StreamEvent]]
+        self, messages: Iterable[Union[PrintableMessage, StreamEvent]]
     ) -> Iterable[Union[BinaryMessage, StreamEvent]]:
         return (self.serialize(message) for message in messages)
 
-    def deserialize(self, binary_message: Union[BinaryMessage, StreamEvent]) -> Union[OutputMessage, StreamEvent]:
+    def deserialize(self, binary_message: Union[BinaryMessage, StreamEvent]) -> Union[PrintableMessage, StreamEvent]:
         if isinstance(binary_message, StreamEvent):
             return binary_message
 
         key_data = self._key_serializer.deserialize(binary_message.key)
         value_data = self._value_serializer.deserialize(binary_message.value)
-        return OutputMessage(
+        return PrintableMessage(
             key=key_data,
             value=value_data,
             offset=binary_message.offset,
@@ -95,5 +95,5 @@ class MessageSerializer:
 
     def deserialize_many(
         self, binary_message_stream: Iterable[Union[BinaryMessage, StreamEvent]]
-    ) -> Iterable[Union[OutputMessage, StreamEvent]]:
+    ) -> Iterable[Union[PrintableMessage, StreamEvent]]:
         return (self.deserialize(binary_message) for binary_message in binary_message_stream)

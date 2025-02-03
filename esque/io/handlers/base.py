@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, Tuple, TypeVar, Union
 
-from esque.io.messages import BinaryMessage, OutputMessage
+from esque.io.messages import BinaryMessage, PrintableMessage
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent
 
 H = TypeVar("H", bound="BaseHandler")
@@ -50,7 +50,7 @@ class BaseHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_message(self, binary_message: Union[OutputMessage, StreamEvent]) -> None:
+    def write_message(self, binary_message: Union[PrintableMessage, StreamEvent]) -> None:
         """
         Write the message from `binary_message` to this handler's source.
         The handler may choose which action to take upon receiving any :class:`StreamEvent`
@@ -60,7 +60,7 @@ class BaseHandler(ABC):
         """
         raise NotImplementedError
 
-    def write_many_messages(self, message_stream: Iterable[Union[OutputMessage, StreamEvent]]) -> None:
+    def write_many_messages(self, message_stream: Iterable[Union[PrintableMessage, StreamEvent]]) -> None:
         """
         Write all messages from the iterable `message_stream` to this handler's source.
         The handler may choose which action to take upon receiving any :class:`StreamEvent`

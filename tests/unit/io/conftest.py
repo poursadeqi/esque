@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from pytest_cases import fixture
 
 from esque.io.handlers.base import BaseHandler
-from esque.io.messages import BinaryMessage, MessageHeader, MessagePayload, OutputMessage
+from esque.io.messages import BinaryMessage, MessageHeader, MessagePayload, PrintableMessage
 from esque.io.pipeline import HandlerSerializerMessageReader, HandlerSerializerMessageWriter, PipelineBuilder
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.string import StringSerializer, StringSerializerConfig
@@ -144,9 +144,9 @@ def binary_messages() -> List[BinaryMessage]:
 
 
 @fixture()
-def output_messages() -> List[OutputMessage]:
+def printable_messages() -> List[PrintableMessage]:
     return [
-        OutputMessage(
+        PrintableMessage(
             key=MessagePayload(payload="foo1"),
             value=MessagePayload(payload="bar1"),
             partition=0,
@@ -154,7 +154,7 @@ def output_messages() -> List[OutputMessage]:
             timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=0, tzinfo=datetime.timezone.utc),
             headers=[MessageHeader("a", "b")],
         ),
-        OutputMessage(
+        PrintableMessage(
             key=MessagePayload(payload="foo2"),
             value=MessagePayload(payload="bar2"),
             partition=0,
@@ -162,7 +162,7 @@ def output_messages() -> List[OutputMessage]:
             timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=1, tzinfo=datetime.timezone.utc),
             headers=[MessageHeader("c", None)],
         ),
-        OutputMessage(
+        PrintableMessage(
             key=MessagePayload(payload="foo3"),
             value=MessagePayload(payload="bar3"),
             partition=1,
@@ -170,7 +170,7 @@ def output_messages() -> List[OutputMessage]:
             timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=2, tzinfo=datetime.timezone.utc),
             headers=[],
         ),
-        OutputMessage(
+        PrintableMessage(
             key=MessagePayload(payload="foo4"),
             value=MessagePayload(payload="bar4"),
             partition=1,
@@ -178,7 +178,7 @@ def output_messages() -> List[OutputMessage]:
             timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=3, tzinfo=datetime.timezone.utc),
             headers=[],
         ),
-        OutputMessage(
+        PrintableMessage(
             key=MessagePayload(payload="foo5"),
             value=MessagePayload(payload="bar5"),
             partition=1,
@@ -186,7 +186,7 @@ def output_messages() -> List[OutputMessage]:
             timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=4, tzinfo=datetime.timezone.utc),
             headers=[],
         ),
-        OutputMessage(
+        PrintableMessage(
             key=MessagePayload(payload="foo6"),
             value=MessagePayload(payload="bar6"),
             partition=1,
@@ -211,7 +211,7 @@ def partition_count(binary_messages) -> int:
 @fixture()
 def string_messages(
     binary_messages: List[BinaryMessage], string_message_serializer: MessageSerializer
-) -> List[OutputMessage]:
+) -> List[PrintableMessage]:
     return list(string_message_serializer.deserialize_many(binary_messages))
 
 

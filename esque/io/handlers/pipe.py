@@ -9,7 +9,7 @@ from rich.console import Console
 
 from esque.io.exceptions import EsqueIOHandlerReadException, EsqueIOSerializerConfigNotSupported
 from esque.io.handlers.base import BaseHandler
-from esque.io.messages import BinaryMessage, MessageHeader, OutputMessage
+from esque.io.messages import BinaryMessage, MessageHeader, PrintableMessage
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent
 
 
@@ -57,7 +57,7 @@ class PipeHandler(BaseHandler):
     def put_serializer_configs(self, config: Dict[str, Any]) -> NoReturn:
         raise EsqueIOSerializerConfigNotSupported
 
-    def write_message(self, message: Union[OutputMessage, StreamEvent]) -> None:
+    def write_message(self, message: Union[PrintableMessage, StreamEvent]) -> None:
         if isinstance(message, StreamEvent):
             return
         self._console.print_json(
