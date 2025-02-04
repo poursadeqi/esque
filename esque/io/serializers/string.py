@@ -1,25 +1,23 @@
 import dataclasses
 from typing import Optional
 
-from esque.io.data_types import NoData, String
-from esque.io.messages import MessagePayload
-from esque.io.serializers.base import DataSerializer, SerializerConfig
+from esque.io.messages import PrintableMessagePayload
+from esque.io.serializers.base import DataSerializer
 
 
 @dataclasses.dataclass()
-class StringSerializerConfig(SerializerConfig):
+class StringSerializerConfig:
     encoding: str = "UTF-8"
 
 
-class StringSerializer(DataSerializer[StringSerializerConfig]):
-    data_type: String = String()
+class StringSerializer(DataSerializer):
+    def __init__(self, config: StringSerializerConfig):
+        self.config = config
 
-    def serialize(self, data: MessagePayload) -> Optional[bytes]:
-        if isinstance(data.data_type, NoData):
-            return None
+    def serialize(self, data: PrintableMessagePayload) -> Optional[str]:
         return data.payload
 
-    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
+    def deserialize(self, raw_data: Optional[bytes]) -> PrintableMessagePayload:
         if raw_data is None:
-            return MessagePayload()
-        return MessagePayload(payload=raw_data.decode(encoding=self.config.encoding, errors="replace"))
+            return PrintableMessagePayload()
+        return PrintableMessagePayload(payload=raw_data.decode(encoding=self.config.encoding, errors="replace"))

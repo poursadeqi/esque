@@ -8,7 +8,7 @@ import pytest
 from pytest_cases import fixture, parametrize_with_cases
 
 from esque.config import Config
-from esque.io.messages import MessagePayload
+from esque.io.messages import PrintableMessagePayload
 from esque.io.serializers.registry_avro import (
     SCHEMA_REGISTRY_CLIENT_SCHEME_MAP,
     AvroType,
@@ -70,8 +70,8 @@ def avro_type() -> AvroType:
 
 
 @fixture
-def deserialized_data(avro_type) -> MessagePayload:
-    return MessagePayload(payload={"id": "asdf"}, data_type=avro_type)
+def deserialized_data(avro_type) -> PrintableMessagePayload:
+    return PrintableMessagePayload(payload={"id": "asdf"}, data_type=avro_type)
 
 
 @fixture
@@ -85,7 +85,7 @@ def registry_avro_serializer(registry_avro_config: RegistryAvroSerializerConfig)
 
 
 def test_registry_client_same_schema_same_id(
-    registry_avro_config: RegistryAvroSerializerConfig, avro_type: MessagePayload
+    registry_avro_config: RegistryAvroSerializerConfig, avro_type: PrintableMessagePayload
 ):
     client1 = SchemaRegistryClient.from_config(registry_avro_config)
     schema_id1 = client1.get_or_create_id_for_avro_type(avro_type)
@@ -96,7 +96,7 @@ def test_registry_client_same_schema_same_id(
     assert schema_id1 == schema_id2
 
 
-def test_registry_client_schema_retrieval(schema_registry_client: SchemaRegistryClient, avro_type: MessagePayload):
+def test_registry_client_schema_retrieval(schema_registry_client: SchemaRegistryClient, avro_type: PrintableMessagePayload):
     schema_id = schema_registry_client.get_or_create_id_for_avro_type(avro_type)
     actual_type = schema_registry_client.get_avro_type_by_id(schema_id)
 

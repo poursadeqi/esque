@@ -7,8 +7,8 @@ from contextlib import closing
 from typing import Callable, ClassVar, Dict, Iterable, List, NamedTuple, Optional, Tuple, Union
 
 from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState, ExqueIOInvalidURIException
-from esque.io.handlers import BaseHandler, PipeHandler, create_handler
-from esque.io.handlers.pipe import PipeHandlerConfig
+from esque.io.handlers.base import BaseHandler
+from esque.io.handlers.pipe import PipeHandlerConfig, PipeHandler
 from esque.io.messages import PrintableMessage
 from esque.io.serializers import StringSerializer, create_serializer
 from esque.io.serializers.base import MessageSerializer
@@ -173,7 +173,7 @@ class HandlerSerializerMessageWriter(MessageWriter):
         self._message_serializer = message_serializer
 
     def write_message(self, message: PrintableMessage):
-        self._handler.write_message(binary_message=message)
+        self._handler.write_message(printable_message=message)
 
     def write_many_messages(self, message_stream: Iterable[Union[PrintableMessage, StreamEvent]]):
         self._handler.write_many_messages(message_stream=message_stream)
@@ -224,14 +224,13 @@ class _BuilderComponentState(enum.Flag):
     SERIALIZER_DEFINED = enum.auto()
     HANDLER_DEFINED = enum.auto()
     READER_WRITER_DEFINED = enum.auto()
-    HANDLER_SERIALIZER_DEFINED = HANDLER_DEFINED | SERIALIZER_DEFINED
 
     def is_valid(self) -> bool:
         return self in {
             _BuilderComponentState.NOTHING_DEFINED,
             _BuilderComponentState.URI_DEFINED,
             _BuilderComponentState.READER_WRITER_DEFINED,
-            _BuilderComponentState.HANDLER_SERIALIZER_DEFINED,
+            _BuilderComponentState.HANDLER_DEFINED
         }
 
 
@@ -268,12 +267,6 @@ class PipelineBuilder:
             self._input_state |= _BuilderComponentState.HANDLER_DEFINED
         return self
 
-    def with_input_message_serializer(self, serializer: MessageSerializer) -> "PipelineBuilder":
-        if serializer is not None:
-            self._input_serializer = serializer
-            self._input_state |= _BuilderComponentState.SERIALIZER_DEFINED
-        return self
-
     def with_message_reader(self, message_reader: MessageReader) -> "PipelineBuilder":
         if message_reader is not None:
             self._message_reader = message_reader
@@ -284,12 +277,6 @@ class PipelineBuilder:
         if handler is not None:
             self._output_handler = handler
             self._output_state |= _BuilderComponentState.HANDLER_DEFINED
-        return self
-
-    def with_output_message_serializer(self, serializer: MessageSerializer) -> "PipelineBuilder":
-        if serializer is not None:
-            self._output_serializer = serializer
-            self._output_state |= _BuilderComponentState.SERIALIZER_DEFINED
         return self
 
     def with_message_writer(self, message_writer: MessageWriter) -> "PipelineBuilder":
@@ -372,14 +359,6 @@ class PipelineBuilder:
         )
 
     def _handle_invalid_input_state(self) -> None:
-        if self._input_state == _BuilderComponentState.SERIALIZER_DEFINED:
-            self._errors.append("Only input serializer was provided, need to also give an input handler.")
-            return
-        if self._input_state == _BuilderComponentState.HANDLER_DEFINED:
-            self._errors.append("Only input handler was provided, need to also give an input serializer.")
-            return
-
-        self._errors.append("Ambiguous input state. Make sure not to provide more than one of the following.")
         if _BuilderComponentState.READER_WRITER_DEFINED in self._input_state:
             self._errors.append("Input reader was supplied.")
         if _BuilderComponentState.URI_DEFINED in self._input_state:
@@ -391,8 +370,8 @@ class PipelineBuilder:
         return PipeHandler(PipeHandlerConfig(file=sys.stdout))
 
     def _create_default_input_serializer(self) -> MessageSerializer:
-        serializer = StringSerializer(config=StringSerializerConfig(scheme="str"))
-        return MessageSerializer(key_serializer=serializer, value_serializer=serializer)
+        serializer = StringSerializer(config=StringSerializerConfig())
+        return MessageSerializer(key=serializer, value=serializer)
 
     def _build_message_writer(self) -> Optional[MessageWriter]:
         if not self._output_state.is_valid():
@@ -427,14 +406,6 @@ class PipelineBuilder:
         )
 
     def _handle_invalid_output_state(self) -> None:
-        if self._output_state == _BuilderComponentState.SERIALIZER_DEFINED:
-            self._errors.append("Only output serializer was provided, need to also give an output handler.")
-            return
-        if self._output_state == _BuilderComponentState.HANDLER_DEFINED:
-            self._errors.append("Only output handler was provided, need to also give an output serializer.")
-            return
-
-        self._errors.append("Ambiguous output state. Make sure not to provide more than one of the following.")
         if _BuilderComponentState.READER_WRITER_DEFINED in self._output_state:
             self._errors.append("Output writer was supplied.")
         if _BuilderComponentState.URI_DEFINED in self._output_state:

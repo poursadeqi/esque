@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable, Tuple, TypeVar, Union
+from typing import Iterable, TypeVar, Union
 
-from esque.io.messages import BinaryMessage, PrintableMessage
+from esque.io.messages import PrintableMessage
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent
 
 H = TypeVar("H", bound="BaseHandler")
@@ -26,37 +26,13 @@ class BaseHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_serializer_configs(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """
-        Retrieves the serializer config from this handler's source, if possible.
-        Implementations should raise an :class:`esque.io.exceptions.EsqueIOSerializerConfigNotSupported`
-        if this operation is not supported for a particular
-        handler.
-
-        :return: Tuple of dictionaries containing the configs for the key and value serializer
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def put_serializer_configs(self, config: Tuple[Dict[str, Any], Dict[str, Any]]) -> None:
-        """
-        Persists the serializer config in this handler's source, if possible.
-        Implementations should raise an :class:`esque.io.exceptions.EsqueIOSerializerConfigNotSupported`
-        if this operation is not supported for a particular
-        handler.
-
-        :param config: Tuple of dictionaries containing the configs for the key and value serializer
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def write_message(self, binary_message: Union[PrintableMessage, StreamEvent]) -> None:
+    def write_message(self, printable_message: Union[PrintableMessage, StreamEvent]) -> None:
         """
         Write the message from `binary_message` to this handler's source.
         The handler may choose which action to take upon receiving any :class:`StreamEvent`
         instances but mostly the appropriate action is to just ignore them.
 
-        :param binary_message: The message that is supposed to be written.
+        :param printable_message: The message that is supposed to be written.
         """
         raise NotImplementedError
 
@@ -72,7 +48,7 @@ class BaseHandler(ABC):
             self.write_message(message)
 
     @abstractmethod
-    def read_message(self) -> Union[BinaryMessage, StreamEvent]:
+    def read_message(self) -> Union[PrintableMessage, StreamEvent]:
         """
         Read the next :class:`BinaryMessage` from this handler's source.
         Returns an object of :class:`StreamEvent` to indicate certain events that may happen while reading from the
@@ -88,7 +64,7 @@ class BaseHandler(ABC):
         """
         raise NotImplementedError
 
-    def binary_message_stream(self) -> Iterable[Union[BinaryMessage, StreamEvent]]:
+    def binary_message_stream(self) -> Iterable[Union[PrintableMessage, StreamEvent]]:
         """
         Read :class:`BinaryMessage`s from this handler's source until the source's permanent end is reached.
         Yields an object of :class:`StreamEvent` to indicate certain events that may happen while reading from the

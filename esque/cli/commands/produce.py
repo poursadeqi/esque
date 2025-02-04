@@ -8,13 +8,12 @@ from esque.cli.helpers import ensure_approval
 from esque.cli.options import State, default_options
 from esque.cli.output import blue_bold, green_bold
 from esque.cluster import Cluster
-from esque.io.handlers import BaseHandler, KafkaHandler, PipeHandler
-from esque.io.handlers.kafka import KafkaHandlerConfig
-from esque.io.handlers.pipe import PipeHandlerConfig
+from esque.io.handlers.base import BaseHandler
+from esque.io.handlers.kafka import KafkaHandlerConfig, KafkaHandler
+from esque.io.handlers.pipe import PipeHandlerConfig, PipeHandler
 from esque.io.pipeline import PipelineBuilder
 from esque.io.serializers import BinarySerializer, RegistryAvroSerializer, StringSerializer
 from esque.io.serializers.base import MessageSerializer
-from esque.io.serializers.binary import BinarySerializerConfig
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.stream_decorators import event_counter, yield_only_matching_messages
@@ -149,7 +148,7 @@ def produce(
     builder.with_input_handler(input_handler)
 
     input_message_serializer = create_input_message_serializer(directory, avro, binary)
-    builder.with_input_message_serializer(input_message_serializer)
+    builder.with_input_serializer(input_message_serializer)
 
     output_message_serializer = create_output_serializer(avro, binary, topic, state)
     builder.with_output_message_serializer(output_message_serializer)

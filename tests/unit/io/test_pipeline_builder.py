@@ -4,7 +4,7 @@ import pytest
 from pytest_cases import fixture
 
 from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState
-from esque.io.messages import BinaryMessage, PrintableMessage
+from esque.io.messages import WritableMessage, PrintableMessage
 from esque.io.pipeline import PipelineBuilder
 from esque.io.serializers.base import MessageSerializer
 from esque.io.stream_decorators import skip_stream_events
@@ -29,12 +29,12 @@ def test_create_empty_builder():
 def test_create_pipeline_with_handler_and_serializer_input(
     dummy_handler: DummyHandler,
     string_message_serializer: MessageSerializer,
-    binary_messages: List[BinaryMessage],
+    binary_messages: List[WritableMessage],
     string_messages: List[PrintableMessage],
 ):
     builder = PipelineBuilder()
     builder.with_input_handler(dummy_handler)
-    builder.with_input_message_serializer(string_message_serializer)
+    builder.with_input_serializer(string_message_serializer)
     builder.with_stream_decorator(skip_stream_events)
     pipeline = builder.build()
 
@@ -46,7 +46,7 @@ def test_create_pipeline_with_handler_and_serializer_input(
 def test_create_pipeline_with_handler_and_serializer_output(
     dummy_handler: DummyHandler,
     string_message_serializer: MessageSerializer,
-    binary_messages: List[BinaryMessage],
+    binary_messages: List[WritableMessage],
     string_messages: List[PrintableMessage],
 ):
     builder = PipelineBuilder()
@@ -60,7 +60,7 @@ def test_create_pipeline_with_handler_and_serializer_output(
 
 def test_create_pipeline_with_message_reader(
     dummy_message_reader: DummyMessageReader,
-    binary_messages: List[BinaryMessage],
+    binary_messages: List[WritableMessage],
     string_messages: List[PrintableMessage],
 ):
     builder = PipelineBuilder()
@@ -73,7 +73,7 @@ def test_create_pipeline_with_message_reader(
 
 
 def test_create_pipeline_with_message_writer(
-    dummy_message_writer, binary_messages: List[BinaryMessage], string_messages: List[PrintableMessage]
+    dummy_message_writer, binary_messages: List[WritableMessage], string_messages: List[PrintableMessage]
 ):
     builder = PipelineBuilder()
     builder.with_message_writer(dummy_message_writer)
@@ -94,7 +94,7 @@ def test_build_fails_with_only_handler(dummy_handler):
 
 def test_build_fails_with_only_serializer(string_message_serializer: MessageSerializer):
     with pytest.raises(EsqueIOInvalidPipelineBuilderState):
-        PipelineBuilder().with_input_message_serializer(string_message_serializer).build()
+        PipelineBuilder().with_input_serializer(string_message_serializer).build()
 
     with pytest.raises(EsqueIOInvalidPipelineBuilderState):
         PipelineBuilder().with_output_message_serializer(string_message_serializer).build()
@@ -105,7 +105,7 @@ def test_build_fails_with_message_reader_and_serializer(
 ):
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)
-    builder.with_input_message_serializer(string_message_serializer)
+    builder.with_input_serializer(string_message_serializer)
 
     with pytest.raises(EsqueIOInvalidPipelineBuilderState):
         builder.build()
@@ -127,7 +127,7 @@ def test_build_fails_with_message_reader_serializer_and_handler(
 ):
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)
-    builder.with_input_message_serializer(string_message_serializer)
+    builder.with_input_serializer(string_message_serializer)
     builder.with_input_handler(dummy_handler)
 
     with pytest.raises(EsqueIOInvalidPipelineBuilderState):
@@ -153,7 +153,7 @@ def test_build_fails_with_message_writer_and_serializer(
 ):
     builder = PipelineBuilder()
     builder.with_message_writer(dummy_message_writer)
-    builder.with_input_message_serializer(string_message_serializer)
+    builder.with_input_serializer(string_message_serializer)
 
     with pytest.raises(EsqueIOInvalidPipelineBuilderState):
         builder.build()

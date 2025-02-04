@@ -1,7 +1,7 @@
 from typing import Any, Dict, Type
 
 from esque.io.exceptions import EsqueIOSerializerConfigException
-from esque.io.serializers.base import DataSerializer, SerializerConfig
+from esque.io.serializers.base import DataSerializer
 from esque.io.serializers.binary import BinarySerializer
 from esque.io.serializers.json import JsonSerializer
 from esque.io.serializers.registry_avro import RegistryAvroSerializer

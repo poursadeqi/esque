@@ -3,7 +3,7 @@ from typing import List
 import pytest
 
 from esque.io.exceptions import ExqueIOInvalidURIException
-from esque.io.messages import BinaryMessage
+from esque.io.messages import WritableMessage
 from esque.io.pipeline import Pipeline, PipelineBuilder, UriConfig
 from tests.unit.io.conftest import DummyMessageWriter
 
@@ -73,7 +73,7 @@ def test_uri_config_throws_exception_for_duplicate_parameters():
 
 
 def test_pipeline_without_special_decorators_runs_successfully(
-    dummy_message_writer: DummyMessageWriter, binary_messages: List[BinaryMessage], prepared_builder: PipelineBuilder
+    dummy_message_writer: DummyMessageWriter, binary_messages: List[WritableMessage], prepared_builder: PipelineBuilder
 ):
     pipeline = prepared_builder.build()
 
@@ -83,7 +83,7 @@ def test_pipeline_without_special_decorators_runs_successfully(
 
 
 def test_limited_read_with_absolute_offset(
-    dummy_message_writer: DummyMessageWriter, binary_messages: List[BinaryMessage], prepared_builder: PipelineBuilder
+    dummy_message_writer: DummyMessageWriter, binary_messages: List[WritableMessage], prepared_builder: PipelineBuilder
 ):
     prepared_builder.with_range(start=1, limit=1)
     pipeline = prepared_builder.build()
@@ -96,7 +96,7 @@ def test_limited_read_with_absolute_offset(
 
 @pytest.mark.xfail(reason="Not yet implemented")
 def test_limited_read_with_relative_offset_from_end(
-    dummy_message_writer: DummyMessageWriter, binary_messages: List[BinaryMessage], prepared_builder: PipelineBuilder
+    dummy_message_writer: DummyMessageWriter, binary_messages: List[WritableMessage], prepared_builder: PipelineBuilder
 ):
     prepared_builder.with_range(start=-2, limit=1)
     pipeline = prepared_builder.build()

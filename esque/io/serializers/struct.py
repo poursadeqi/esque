@@ -2,27 +2,26 @@ import dataclasses
 from struct import unpack
 from typing import Optional
 
-from esque.io.data_types import UnknownDataType
-from esque.io.messages import MessagePayload
-from esque.io.serializers.base import DataSerializer, SerializerConfig
+from esque.io.messages import PrintableMessagePayload
+from esque.io.serializers.base import DataSerializer
 
 
 @dataclasses.dataclass()
-class StructSerializerConfig(SerializerConfig):
+class StructSerializerConfig:
     struct_format: str
 
 
 class StructSerializer(DataSerializer):
-    config_cls = StructSerializerConfig
-    unknown_data_type: UnknownDataType = UnknownDataType()
+    def __init__(self, config: StructSerializerConfig):
+        self.config = config
 
-    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
+    def deserialize(self, raw_data: Optional[bytes]) -> PrintableMessagePayload:
         if raw_data is None:
-            return MessagePayload()
+            return PrintableMessagePayload()
         output = unpack(self.config.struct_format, raw_data)[0]
-        return MessagePayload(payload=output)
+        return PrintableMessagePayload(payload=output)
 
-    def serialize(self, data: MessagePayload) -> str:
+    def serialize(self, data: PrintableMessagePayload) -> str:
         if data.is_empty():
             return ""
         # if not isinstance(data.payload, bytes):

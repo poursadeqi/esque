@@ -8,13 +8,11 @@ from esque.cli.autocomplete import list_consumergroups, list_contexts, list_topi
 from esque.cli.options import State, default_options
 from esque.cluster import Cluster
 from esque.config import ESQUE_GROUP_ID
-from esque.io.handlers import KafkaHandler
-from esque.io.handlers.kafka import KafkaHandlerConfig
+from esque.io.handlers.kafka import KafkaHandlerConfig, KafkaHandler
 from esque.io.handlers.pipe import PipeHandler, PipeHandlerConfig
 from esque.io.pipeline import PipelineBuilder
 from esque.io.serializers import BinarySerializer, JsonSerializer, RegistryAvroSerializer, StringSerializer
 from esque.io.serializers.base import MessageSerializer
-from esque.io.serializers.binary import BinarySerializerConfig
 from esque.io.serializers.json import JsonSerializerConfig
 from esque.io.serializers.proto import ProtoSerializer, ProtoSerializerConfig
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
@@ -25,7 +23,6 @@ from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_t
 
 @dataclass
 class ConsumeOptions:
-    state: State
     topic: str
     from_context: str
     number: Optional[int]
@@ -114,7 +111,7 @@ class ConsumeOptions:
     is_flag=True,
 )
 @default_options
-def consume(*args, **kwargs):
+def consume(state: State, **kwargs):
     """Consume messages from a topic.
 
     Read messages from a given topic in a given context. These messages will be written into STDOUT.
@@ -142,24 +139,17 @@ def consume(*args, **kwargs):
     # Extract binary data from keys (depending on the data this could mess up your console)
     esque consume --stdout --binary TOPIC | jq '.key | @base64d'
     """
-    kwargs["state"] = args[0]
     consumer_options = ConsumeOptions(**kwargs)
 
     if not consumer_options.from_context:
-        consumer_options.from_context = consumer_options.state.config.current_context
-    consumer_options.state.config.context_switch(consumer_options.from_context)
+        consumer_options.from_context = state.config.current_context
+    state.config.context_switch(consumer_options.from_context)
+
+    read_serializer = create_key_value_serializer(state, consumer_options)
 
     builder = PipelineBuilder()
-    builder.with_input_message_serializer(create_messages_serializer(consumer_options))
-
-    input_handler = create_input_handler(consumer_options)
-    builder.with_input_handler(input_handler)
-
-    output_handler = create_output_handler(consumer_options)
-    builder.with_output_handler(output_handler)
-
-    output_message_serializer = create_messages_serializer(consumer_options)
-    builder.with_output_message_serializer(output_message_serializer)
+    builder.with_input_handler(create_input_handler(read_serializer, consumer_options))
+    builder.with_output_handler(create_output_handler(consumer_options))
 
     if consumer_options.last:
         start = KafkaHandler.OFFSET_AFTER_LAST_MESSAGE
@@ -184,68 +174,57 @@ def consume(*args, **kwargs):
     builder.build().run_pipeline()
 
 
-def create_input_handler(consumer_options: ConsumeOptions):
+def create_input_handler(read_serializer: MessageSerializer, consumer_options: ConsumeOptions):
     consumer_group = consumer_options.consumer_group
-    if not consumer_group:
-        consumer_group = ESQUE_GROUP_ID
-    return KafkaHandler(
-        KafkaHandlerConfig(
-            context=consumer_options.from_context,
-            topic=consumer_options.topic,
-            consumer_group_id=consumer_group,
-        )
+    if not consumer_group: consumer_group = ESQUE_GROUP_ID
+    return KafkaHandler(KafkaHandlerConfig(
+        read_serializer=read_serializer,
+        context=consumer_options.from_context,
+        topic=consumer_options.topic,
+        consumer_group_id=consumer_group)
     )
 
 
-def create_messages_serializer(consumer_options: ConsumeOptions) -> MessageSerializer:
+def create_key_value_serializer(state: State, consumer_options: ConsumeOptions) -> MessageSerializer:
     key_serializer = create_serializer(
-        consumer_options.key_serializer, consumer_options.key_struct_format, consumer_options
+        state, consumer_options.key_serializer, consumer_options.key_struct_format, consumer_options
     )
 
     val_serializer = create_serializer(
-        consumer_options.value_serializer, consumer_options.value_struct_format, consumer_options
+        state, consumer_options.value_serializer, consumer_options.value_struct_format, consumer_options
     )
 
-    return MessageSerializer(key_serializer=key_serializer, value_serializer=val_serializer)
+    return MessageSerializer(key=key_serializer, value=val_serializer)
 
 
 def create_output_handler(consumer_options: ConsumeOptions):
-    return PipeHandler(
-        PipeHandlerConfig(
-            file=sys.stdout,
-            key_encoding="utf-8",
-            value_encoding="utf-8",
-            pretty_print=consumer_options.pretty_print
-        )
-    )
+    return PipeHandler(PipeHandlerConfig(file=sys.stdout, pretty_print=consumer_options.pretty_print))
 
 
-def create_serializer(serializer: str, struct_format: str, consumer_options: ConsumeOptions):
-    config = consumer_options.state.config
+def create_serializer(state: State, serializer: str, struct_format: str, consumer_options: ConsumeOptions):
     if serializer == "json":
-        return JsonSerializer(JsonSerializerConfig(scheme="json"))
+        return JsonSerializer(JsonSerializerConfig())
     elif serializer == "avro":
         return RegistryAvroSerializer(
-            RegistryAvroSerializerConfig(scheme="reg-avro", schema_registry_uri=config.schema_registry)
+            RegistryAvroSerializerConfig(schema_registry_uri=state.config.schema_registry)
         )
     elif serializer == "str":
-        serializer = StringSerializer(StringSerializerConfig(scheme="str"))
-    elif serializer == "proto" and consumer_options.topic not in config.proto:
+        serializer = StringSerializer(StringSerializerConfig())
+    elif serializer == "proto" and consumer_options.topic not in state.config.proto:
         raise RuntimeError(
             "topic name was not found in proto configs. please add it to the configuration or use raw serializer"
         )
-    elif serializer == "proto" and consumer_options.topic in config.proto:
-        proto_cfg = config.proto[consumer_options.topic]
+    elif serializer == "proto" and consumer_options.topic in state.config.proto:
+        proto_cfg = state.config.proto[consumer_options.topic]
         serializer = ProtoSerializer(
             ProtoSerializerConfig(
-                scheme="proto",
                 protoc_py_path=proto_cfg.get("protoc_py_path"),
                 module_name=proto_cfg.get("module_name"),
                 class_name=proto_cfg.get("class_name"),
             )
         )
     elif serializer == "struct":
-        serializer = StructSerializer(StructSerializerConfig(scheme="struct", struct_format=struct_format))
+        serializer = StructSerializer(StructSerializerConfig(struct_format=struct_format))
     else:
-        serializer = BinarySerializer(BinarySerializerConfig(scheme="raw"))
+        serializer = BinarySerializer()
     return serializer

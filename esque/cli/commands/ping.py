@@ -9,9 +9,8 @@ import click
 from esque.cli.helpers import ensure_approval
 from esque.cli.options import State, default_options
 from esque.config import PING_TOPIC
-from esque.io.handlers import KafkaHandler
-from esque.io.handlers.kafka import KafkaHandlerConfig
-from esque.io.messages import BinaryMessage
+from esque.io.handlers.kafka import KafkaHandlerConfig, KafkaHandler
+from esque.io.messages import PrintableMessage
 from esque.io.stream_decorators import skip_stream_events
 from esque.resources.topic import Topic
 
@@ -36,7 +35,7 @@ def ping(state: State, times: int, wait: int):
 
     if not topic_controller.topic_exists(PING_TOPIC):
         if ensure_approval(
-            f"Topic {PING_TOPIC!r} does not exist, do you want to create it?", no_verify=state.no_verify
+                f"Topic {PING_TOPIC!r} does not exist, do you want to create it?", no_verify=state.no_verify
         ):
             topic_config = {
                 "cleanup.policy": "compact,delete",
@@ -97,8 +96,8 @@ def ping(state: State, times: int, wait: int):
     click.echo(f"c2c {stats(c2c_times)}")
 
 
-def key_matches(ping_id: bytes) -> Callable[[BinaryMessage], bool]:
-    def matcher(msg: BinaryMessage) -> bool:
+def key_matches(ping_id: bytes) -> Callable[[PrintableMessage], bool]:
+    def matcher(msg: PrintableMessage) -> bool:
         return msg.key == ping_id
 
     return matcher
@@ -108,16 +107,16 @@ def stats(deltas: List[int]) -> str:
     return f"min/avg/max = {min(deltas):.2f}/{(sum(deltas) / len(deltas)):.2f}/{max(deltas):.2f} ms"
 
 
-def create_ping_message(ping_id) -> BinaryMessage:
+def create_ping_message(ping_id) -> PrintableMessage:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
-    return BinaryMessage(
+    return PrintableMessage(
         key=ping_id, value=dt_to_bytes(create_time), partition=-1, offset=-1, timestamp=create_time, headers=[]
     )
 
 
-def create_tombstone_message(ping_id) -> BinaryMessage:
+def create_tombstone_message(ping_id) -> PrintableMessage:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
-    return BinaryMessage(key=ping_id, value=None, partition=-1, offset=-1, timestamp=create_time, headers=[])
+    return PrintableMessage(key=ping_id, value=None, partition=-1, offset=-1, timestamp=create_time, headers=[])
 
 
 def dt_to_bytes(dt: datetime.datetime) -> bytes:

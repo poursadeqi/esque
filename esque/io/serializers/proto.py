@@ -6,14 +6,12 @@ from typing import Optional, Type
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
 
-from esque.io.data_types import UnknownDataType
-from esque.io.messages import MessagePayload
-from esque.io.serializers import SerializerConfig
+from esque.io.messages import PrintableMessagePayload
 from esque.io.serializers.base import DataSerializer
 
 
 @dataclasses.dataclass
-class ProtoSerializerConfig(SerializerConfig):
+class ProtoSerializerConfig:
     protoc_py_path: str
     module_name: str
     class_name: str
@@ -30,22 +28,18 @@ class ProtoSerializerConfig(SerializerConfig):
         return self._message_class
 
 
-class ProtoSerializer(DataSerializer[ProtoSerializerConfig]):
-    config_cls = ProtoSerializerConfig
-    unknown_data_type: UnknownDataType = UnknownDataType()
+class ProtoSerializer(DataSerializer):
+    def __init__(self, config: ProtoSerializerConfig):
+        self.config = config
 
-    def serialize(self, data: MessagePayload) -> Optional[bytes]:
+    def serialize(self, data: PrintableMessagePayload) -> Optional[bytes]:
         raise NotImplementedError
 
-    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
+    def deserialize(self, raw_data: Optional[bytes]) -> PrintableMessagePayload:
         if raw_data is None:
-            return MessagePayload()
+            return PrintableMessagePayload()
 
         message = self.config.get_message_class()()
         message.ParseFromString(raw_data)
-
-        payload = MessageToDict(message,
-                                preserving_proto_field_name=True,
-                                always_print_fields_with_no_presence=True
-                                )
-        return MessagePayload(payload=payload)
+        payload = MessageToDict(message, preserving_proto_field_name=True, always_print_fields_with_no_presence=True)
+        return PrintableMessagePayload(payload=payload)

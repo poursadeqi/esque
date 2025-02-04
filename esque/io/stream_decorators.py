@@ -3,11 +3,11 @@ from typing import Callable, Dict, Iterable, Iterator, Tuple, TypeVar, Union
 
 import more_itertools
 
-from esque.io.messages import BinaryMessage, PrintableMessage
+from esque.io.messages import PrintableMessage
 from esque.io.stream_events import EndOfStream, NthMessageRead, StreamEvent
 from esque.ruleparser.ruleengine import RuleTree
 
-M = TypeVar("M", bound=Union[PrintableMessage, BinaryMessage])
+M = TypeVar("M", bound=Union[PrintableMessage])
 MessageStream = Iterable[Union[M, StreamEvent]]
 
 
@@ -146,7 +146,7 @@ def yield_messages_sorted_by_timestamp(partition_count: int) -> Callable[[Messag
 
 
 def yield_only_matching_messages(
-    match_expr_or_rule_tree: Union[str, RuleTree],
+        match_expr_or_rule_tree: Union[str, RuleTree],
 ) -> Callable[[MessageStream], MessageStream]:
     if not isinstance(match_expr_or_rule_tree, RuleTree):
         tree = RuleTree(match_expr_or_rule_tree)
@@ -182,7 +182,6 @@ def event_counter() -> Tuple[EventCounter, Callable[[MessageStream], MessageStre
             yield msg
 
     return counter, event_counter_
-
 
 # def stop_at_message_timeout(iterable: EventStream, message_timeout: int) -> EventStream:
 #     iterator: Iterator[T] = iter(iterable)

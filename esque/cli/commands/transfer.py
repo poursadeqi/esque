@@ -6,12 +6,10 @@ from esque.cli.options import State, default_options
 from esque.cli.output import blue_bold, green_bold
 from esque.cluster import Cluster
 from esque.config import ESQUE_GROUP_ID
-from esque.io.handlers import KafkaHandler
-from esque.io.handlers.kafka import KafkaHandlerConfig
+from esque.io.handlers.kafka import KafkaHandlerConfig, KafkaHandler
 from esque.io.pipeline import PipelineBuilder
 from esque.io.serializers import BinarySerializer, RegistryAvroSerializer, StringSerializer
 from esque.io.serializers.base import MessageSerializer
-from esque.io.serializers.binary import BinarySerializerConfig
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.stream_decorators import event_counter, yield_only_matching_messages
@@ -71,8 +69,8 @@ from esque.resources.topic import Topic
 @click.option(
     "--last/--first",
     help="Start consuming from the earliest or latest offset in the topic."
-    "Latest means at the end of the topic _not including_ the last message(s),"
-    "so if no new data is coming in nothing will be consumed.",
+         "Latest means at the end of the topic _not including_ the last message(s),"
+         "so if no new data is coming in nothing will be consumed.",
     default=False,
 )
 @click.option(
@@ -86,7 +84,7 @@ from esque.resources.topic import Topic
     "-b",
     "--binary",
     help="Set this flag if the topic contains binary data. Or the data should not be (de-)serialized. "
-    "This flag is mutually exclusive with the --avro flag",
+         "This flag is mutually exclusive with the --avro flag",
     default=False,
     is_flag=True,
 )
@@ -102,17 +100,17 @@ from esque.resources.topic import Topic
 )
 @default_options
 def transfer(
-    state: State,
-    from_topic: str,
-    to_topic: str,
-    from_context: str,
-    to_context: str,
-    number: int,
-    last: bool,
-    avro: bool,
-    binary: bool,
-    consumergroup: str,
-    match: str = None,
+        state: State,
+        from_topic: str,
+        to_topic: str,
+        from_context: str,
+        to_context: str,
+        number: int,
+        last: bool,
+        avro: bool,
+        binary: bool,
+        consumergroup: str,
+        match: str = None,
 ):
     """Transfer messages between two topics.
 
@@ -152,7 +150,7 @@ def transfer(
     builder = PipelineBuilder()
 
     input_message_serializer = create_input_serializer(avro, binary, state)
-    builder.with_input_message_serializer(input_message_serializer)
+    builder.with_input_serializer(input_message_serializer)
 
     input_handler = create_input_handler(consumergroup, from_context, from_topic)
     builder.with_input_handler(input_handler)
@@ -204,14 +202,14 @@ def create_input_handler(consumergroup, from_context, topic):
 
 def create_input_serializer(avro, binary, state):
     if binary:
-        input_serializer = BinarySerializer(BinarySerializerConfig(scheme="raw"))
+        input_serializer = BinarySerializer()
     elif avro:
         input_serializer = RegistryAvroSerializer(
-            RegistryAvroSerializerConfig(scheme="reg-avro", schema_registry_uri=state.config.schema_registry)
+            RegistryAvroSerializerConfig(schema_registry_uri=state.config.schema_registry)
         )
     else:
-        input_serializer = StringSerializer(StringSerializerConfig(scheme="str"))
-    input_message_serializer = MessageSerializer(key_serializer=input_serializer, value_serializer=input_serializer)
+        input_serializer = StringSerializer(StringSerializerConfig())
+    input_message_serializer = MessageSerializer(key=input_serializer, value=input_serializer)
     return input_message_serializer
 
 
@@ -225,16 +223,16 @@ def create_output_serializer(avro: bool, binary: bool, topic: str, state: State)
         raise ValueError("Cannot set data to be interpreted as binary AND avro.")
 
     elif binary:
-        key_serializer = BinarySerializer(BinarySerializerConfig(scheme="raw"))
+        key_serializer = BinarySerializer()
         value_serializer = key_serializer
 
     elif avro:
-        config = RegistryAvroSerializerConfig(scheme="reg-avro", schema_registry_uri=state.config.schema_registry)
+        config = RegistryAvroSerializerConfig(schema_registry_uri=state.config.schema_registry)
         key_serializer = RegistryAvroSerializer(config.with_key_subject_for_topic(topic))
         value_serializer = RegistryAvroSerializer(config.with_value_subject_for_topic(topic))
     else:
-        key_serializer = StringSerializer(StringSerializerConfig(scheme="str"))
+        key_serializer = StringSerializer(StringSerializerConfig())
         value_serializer = key_serializer
 
-    message_serializer = MessageSerializer(key_serializer=key_serializer, value_serializer=value_serializer)
+    message_serializer = MessageSerializer(key=key_serializer, value=value_serializer)
     return message_serializer

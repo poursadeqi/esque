@@ -12,14 +12,15 @@ from esque.io.exceptions import (
     EsqueIOHandlerWriteException,
     EsqueIOSerializerConfigNotSupported,
 )
-from esque.io.handlers import BaseHandler
-from esque.io.messages import BinaryMessage, MessageHeader
+from esque.io.handlers.base import BaseHandler
+from esque.io.handlers.base_config import BaseHandlerConfig
+from esque.io.messages import MessageHeader, PrintableMessage
 from esque.io.stream_events import EndOfStream, StreamEvent, TemporaryEndOfPartition
 
 
 @dataclasses.dataclass()
-class KafkaHandlerConfig:
-    topic: str
+class KafkaHandlerConfig(BaseHandlerConfig):
+    topic: str = None
     consumer_group_id: str = ESQUE_GROUP_ID
     send_timestamp: str = ""
     context: str = None
@@ -98,28 +99,28 @@ class KafkaHandler(BaseHandler):
     def put_serializer_configs(self, config: Tuple[Dict[str, Any], Dict[str, Any]]) -> None:
         raise EsqueIOSerializerConfigNotSupported
 
-    def write_message(self, binary_message: Union[BinaryMessage, StreamEvent]) -> None:
-        self._produce_single_message(binary_message=binary_message)
+    def write_message(self, printable_message: Union[PrintableMessage, StreamEvent]) -> None:
+        self._produce_single_message(printable_message=printable_message)
         self._flush()
 
-    def write_many_messages(self, message_stream: Iterable[Union[BinaryMessage, StreamEvent]]) -> None:
+    def write_many_messages(self, message_stream: Iterable[Union[PrintableMessage, StreamEvent]]) -> None:
         for binary_message in message_stream:
-            self._produce_single_message(binary_message=binary_message)
+            self._produce_single_message(printable_message=binary_message)
         self._flush()
 
-    def _produce_single_message(self, binary_message: BinaryMessage) -> None:
-        if isinstance(binary_message, StreamEvent):
+    def _produce_single_message(self, printable_message: PrintableMessage) -> None:
+        if isinstance(printable_message, StreamEvent):
             return
         partition_arg = {}
-        partition = self._io_to_confluent_partition(binary_message.partition)
+        partition = self._io_to_confluent_partition(printable_message.partition)
         if partition is not None:
             partition_arg["partition"] = partition
         self._get_producer().produce(
             topic=self.config.topic_name,
-            value=binary_message.value,
-            key=binary_message.key,
-            headers=self._io_to_confluent_headers(binary_message.headers),
-            timestamp=self._io_to_confluent_timestamp(binary_message.timestamp),
+            value=self.config.write_serializer.value.serialize(printable_message.value),
+            key=self.config.write_serializer.key.serialize(printable_message.key),
+            headers=self._io_to_confluent_headers(printable_message.headers),
+            timestamp=self._io_to_confluent_timestamp(printable_message.timestamp),
             on_delivery=self._delivery_callback,
             **partition_arg,
         )
@@ -164,7 +165,7 @@ class KafkaHandler(BaseHandler):
             confluent_headers.append((key, value))
         return confluent_headers
 
-    def read_message(self) -> Union[BinaryMessage, StreamEvent]:
+    def read_message(self) -> Union[PrintableMessage, StreamEvent]:
         if not self._assignment_created:
             self._assign()
 
@@ -180,20 +181,17 @@ class KafkaHandler(BaseHandler):
         else:
             self._eof_reached[consumed_message.partition()] = False
 
-            binary_message = self._confluent_to_binary_message(consumed_message)
+            return self._confluent_to_printable_message(consumed_message)
 
-            return binary_message
-
-    def _confluent_to_binary_message(self, consumed_message: Message) -> BinaryMessage:
-        binary_message = BinaryMessage(
-            key=consumed_message.key(),
-            value=consumed_message.value(),
+    def _confluent_to_printable_message(self, consumed_message: Message) -> PrintableMessage:
+        return PrintableMessage(
+            key=self.config.read_serializer.key.deserialize(consumed_message.key()),
+            value=self.config.read_serializer.value.deserialize(consumed_message.value()),
             partition=consumed_message.partition(),
             offset=consumed_message.offset(),
             timestamp=self._confluent_to_io_timestamp(consumed_message),
             headers=self._confluent_to_io_headers(consumed_message.headers()),
         )
-        return binary_message
 
     @staticmethod
     def _confluent_to_io_timestamp(consumed_message: Message) -> datetime.datetime:
@@ -216,7 +214,7 @@ class KafkaHandler(BaseHandler):
 
         return io_headers
 
-    def message_stream(self) -> Iterable[Union[BinaryMessage, StreamEvent]]:
+    def message_stream(self) -> Iterable[Union[PrintableMessage, StreamEvent]]:
         while True:
             yield self.read_message()
 

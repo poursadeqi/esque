@@ -9,7 +9,7 @@ class MessageHeader(NamedTuple):
 
 
 @dataclasses.dataclass
-class MessagePayload:
+class PrintableMessagePayload:
     PrimaryTypes = Union[dict, list, tuple, str, int, float, bool, None]
     payload: PrimaryTypes = None
 
@@ -26,18 +26,8 @@ def now_utc() -> datetime.datetime:
 
 @dataclasses.dataclass
 class PrintableMessage:
-    key: MessagePayload
-    value: MessagePayload
-    partition: int = -1
-    offset: int = -1
-    timestamp: datetime.datetime = dataclasses.field(default_factory=now_utc)
-    headers: List[MessageHeader] = dataclasses.field(default_factory=list)
-
-
-@dataclasses.dataclass
-class BinaryMessage:
-    key: Optional[bytes] = None
-    value: Optional[bytes] = None
+    key: PrintableMessagePayload
+    value: PrintableMessagePayload
     partition: int = -1
     offset: int = -1
     timestamp: datetime.datetime = dataclasses.field(default_factory=now_utc)

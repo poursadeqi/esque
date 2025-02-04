@@ -13,10 +13,9 @@ from urllib.parse import ParseResult
 import fastavro
 import requests
 
-from esque.io.data_types import CustomDataType, DataType, NoData, UnknownDataType
 from esque.io.exceptions import EsqueIONoSuchSchemaException, EsqueIOSerializerConfigException
-from esque.io.messages import MessagePayload
-from esque.io.serializers.base import DataSerializer, SerializerConfig
+from esque.io.messages import PrintableMessagePayload
+from esque.io.serializers.base import DataSerializer
 
 SCHEMA_REGISTRY_CLIENT_SCHEME_MAP: Dict[str, Type["SchemaRegistryClient"]] = {}
 MAGIC_BYTE = b"\x00"
@@ -202,7 +201,7 @@ SCHEMA_REGISTRY_CLIENT_SCHEME_MAP["path"] = PathSchemaRegistryClient
 
 
 @dataclasses.dataclass()
-class RegistryAvroSerializerConfig(SerializerConfig):
+class RegistryAvroSerializerConfig:
     schema_registry_uri: str
     schema_subject: str = ""
 
@@ -235,34 +234,31 @@ class RegistryAvroSerializerConfig(SerializerConfig):
 
 class RegistryAvroSerializer(DataSerializer):
     config_cls = RegistryAvroSerializerConfig
-    unknown_data_type: UnknownDataType = UnknownDataType()
 
     def __init__(self, config: RegistryAvroSerializerConfig):
         super().__init__(config)
         self._registry_client = SchemaRegistryClient.from_config(config)
 
-    def serialize(self, data: MessagePayload) -> Optional[bytes]:
-        if isinstance(data.data_type, NoData):
-            return None
+    def serialize(self, data: PrintableMessagePayload) -> Optional[bytes]:
         avro_type = ensure_avro_type(data.data_type)
         schema_id = self._registry_client.get_or_create_id_for_avro_type(avro_type)
         buffer = io.BytesIO()
         fastavro.schemaless_writer(buffer, avro_type.fastavro_schema, data.payload)
         return create_schema_id_prefix(schema_id) + buffer.getvalue()
 
-    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
+    def deserialize(self, raw_data: Optional[bytes]) -> PrintableMessagePayload:
         if raw_data is None:
-            return MessagePayload.NO_DATA
+            return PrintableMessagePayload.NO_DATA
 
         with io.BytesIO(raw_data) as fake_stream:
             schema_id = get_schema_id_from_prefix(fake_stream.read(5))
             avro_type = self._registry_client.get_avro_type_by_id(schema_id)
             record = fastavro.schemaless_reader(fake_stream, avro_type.fastavro_schema)
-            return MessagePayload(payload=record, data_type=avro_type)
+            return PrintableMessagePayload(payload=record, data_type=avro_type)
 
 
 @dataclasses.dataclass
-class AvroType(CustomDataType):
+class AvroType:
     avro_schema: Dict
 
     def __hash__(self) -> int:
@@ -275,7 +271,7 @@ class AvroType(CustomDataType):
         return fastavro.parse_schema(schema=self.avro_schema)
 
 
-def ensure_avro_type(data_type: DataType) -> AvroType:
+def ensure_avro_type() -> AvroType:
     if isinstance(data_type, AvroType):
         # everything fine, return as is
         return data_type
