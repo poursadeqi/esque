@@ -1,16 +1,14 @@
 import enum
 import functools
 import sys
-import urllib.parse
 from abc import ABC, abstractmethod
 from contextlib import closing
-from typing import Callable, ClassVar, Dict, Iterable, List, NamedTuple, Optional, Tuple, Union
+from typing import Callable, Iterable, List, NamedTuple, Optional, Union
 
-from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState, ExqueIOInvalidURIException
+from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState
 from esque.io.handlers.base import BaseHandler
 from esque.io.handlers.pipe import PipeHandlerConfig, PipeHandler
 from esque.io.messages import PrintableMessage
-from esque.io.serializers import StringSerializer, create_serializer
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.stream_decorators import stop_after_nth_message
@@ -19,11 +17,7 @@ from esque.io.stream_events import StreamEvent
 
 class MessageReader(ABC):
     @abstractmethod
-    def read_message(self) -> PrintableMessage:
-        raise NotImplementedError
-
-    @abstractmethod
-    def message_stream(self) -> Iterable[PrintableMessage]:
+    def stream(self) -> Iterable[PrintableMessage]:
         raise NotImplementedError
 
     @abstractmethod
@@ -41,95 +35,6 @@ class _Schemes(NamedTuple):
     value_serializer_scheme: str
 
 
-class UriConfig:
-    handler_config: Dict[str, str]
-    key_serializer_config: Dict[str, str]
-    value_serializer_config: Dict[str, str]
-    errors: List[str]
-    _parsed_uri: urllib.parse.ParseResult
-
-    KEY_PARAM_PREFIX: ClassVar[str] = "k__"
-    VALUE_PARAM_PREFIX: ClassVar[str] = "v__"
-    KEYVALUE_PARAM_PREFIX: ClassVar[str] = "kv__"
-    HANDLER_PARAM_PREFIX: ClassVar[str] = "h__"
-
-    ALL_PREFIXES: ClassVar[List[str]] = [
-        KEY_PARAM_PREFIX,
-        VALUE_PARAM_PREFIX,
-        KEYVALUE_PARAM_PREFIX,
-        HANDLER_PARAM_PREFIX,
-    ]
-
-    def __init__(self, uri: str):
-        self.handler_config = {}
-        self.key_serializer_config = {}
-        self.value_serializer_config = {}
-        self.errors = []
-        self._parsed_uri: urllib.parse.ParseResult = urllib.parse.urlparse(uri)
-        self._evaluate_uri()
-
-    def _evaluate_uri(self):
-        self._evaluate_uri_scheme()
-        self._assign_handler_host_and_path()
-        self._evaluate_query_params()
-        if self.errors:
-            raise ExqueIOInvalidURIException("Invalid URI:\n" + "\n".join(self.errors))
-
-    def _evaluate_uri_scheme(self):
-        schemes = self._parse_scheme(self._parsed_uri.scheme)
-        self._assign_schemes(schemes)
-
-    def _parse_scheme(self, scheme: str) -> _Schemes:
-        parts = scheme.split("+")
-        if len(parts) == 1:
-            self.errors.append(f"Missing serializer scheme, only got handler scheme {parts[0]!r}.")
-            parts.extend(["missing"] * 2)
-        if len(parts) == 2:
-            # If only one serializer scheme is provided, that means both key and value serializer use the same
-            parts.append(parts[1])
-        return _Schemes(*parts)
-
-    def _assign_schemes(self, schemes):
-        self.handler_config["scheme"] = schemes.handler_scheme
-        self.key_serializer_config["scheme"] = schemes.key_serializer_scheme
-        self.value_serializer_config["scheme"] = schemes.value_serializer_scheme
-
-    def _assign_handler_host_and_path(self):
-        host: str = self._parsed_uri.netloc
-        path: str = self._parsed_uri.path[1:]
-        self.handler_config.update({"host": host, "path": path})
-
-    def _evaluate_query_params(self):
-        parsed_params: Dict[str, List[str]] = urllib.parse.parse_qs(self._parsed_uri.query, keep_blank_values=True)
-        for key, values in parsed_params.items():
-            self._add_raw_param(key, values)
-
-    def _add_raw_param(self, key: str, values: List[str]):
-        if len(values) > 1:
-            self.errors.append(f"Multiple parameter values for {key!r}: {values!r}")
-            return
-
-        value = values[0]
-        prefix, real_key = self._strip_prefix(key)
-        self._add_param(prefix, real_key, value)
-
-    def _strip_prefix(self, key: str) -> Tuple[str, str]:
-        for prefix in self.ALL_PREFIXES:
-            if key.startswith(prefix):
-                return prefix, key[len(prefix):]
-
-    def _add_param(self, prefix: str, key: str, value: str):
-        if prefix == self.HANDLER_PARAM_PREFIX:
-            self.handler_config[key] = value
-        elif prefix == self.KEY_PARAM_PREFIX:
-            self.key_serializer_config[key] = value
-        elif prefix == self.VALUE_PARAM_PREFIX:
-            self.value_serializer_config[key] = value
-        elif prefix == self.KEYVALUE_PARAM_PREFIX:
-            self.key_serializer_config[key] = value
-            self.value_serializer_config[key] = value
-
-
 class MessageWriter(ABC):
     @abstractmethod
     def write_many_messages(self, message_stream: Iterable[Union[PrintableMessage, StreamEvent]]):
@@ -144,18 +49,11 @@ class HandlerSerializerMessageReader(MessageReader):
     _handler: BaseHandler
     _message_serializer: MessageSerializer
 
-    def __init__(self, handler: BaseHandler, message_serializer: MessageSerializer):
+    def __init__(self, handler: BaseHandler):
         self._handler = handler
-        self._message_serializer = message_serializer
 
-    def read_message(self) -> Union[PrintableMessage, StreamEvent]:
-        msg = self._handler.read_message()
-        if isinstance(msg, StreamEvent):
-            return msg
-        return self._message_serializer.deserialize(binary_message=msg)
-
-    def message_stream(self) -> Iterable[PrintableMessage]:
-        return self._message_serializer.deserialize_many(binary_message_stream=self._handler.binary_message_stream())
+    def stream(self) -> Iterable[PrintableMessage]:
+        return self._handler.stream()
 
     def seek(self, position: int):
         self._handler.seek(position)
@@ -168,9 +66,8 @@ class HandlerSerializerMessageWriter(MessageWriter):
     _handler: BaseHandler
     _message_serializer: MessageSerializer
 
-    def __init__(self, handler: BaseHandler, message_serializer: MessageSerializer):
+    def __init__(self, handler: BaseHandler):
         self._handler = handler
-        self._message_serializer = message_serializer
 
     def write_message(self, message: PrintableMessage):
         self._handler.write_message(printable_message=message)
@@ -198,7 +95,7 @@ class Pipeline:
         self._stream_decorators = stream_decorators
 
     def message_stream(self) -> Iterable:
-        return self._input_element.message_stream()
+        return self._input_element.stream()
 
     def decorated_message_stream(self) -> Iterable:
         stream = self.message_stream()
@@ -220,7 +117,6 @@ class Pipeline:
 
 class _BuilderComponentState(enum.Flag):
     NOTHING_DEFINED = 0
-    URI_DEFINED = enum.auto()
     SERIALIZER_DEFINED = enum.auto()
     HANDLER_DEFINED = enum.auto()
     READER_WRITER_DEFINED = enum.auto()
@@ -228,7 +124,6 @@ class _BuilderComponentState(enum.Flag):
     def is_valid(self) -> bool:
         return self in {
             _BuilderComponentState.NOTHING_DEFINED,
-            _BuilderComponentState.URI_DEFINED,
             _BuilderComponentState.READER_WRITER_DEFINED,
             _BuilderComponentState.HANDLER_DEFINED
         }
@@ -238,13 +133,11 @@ class PipelineBuilder:
     _input_handler: Optional[BaseHandler] = None
     _input_serializer: Optional[MessageSerializer] = None
     _message_reader: Optional[MessageReader] = None
-    _input_uri: Optional[str] = None
     _input_state: _BuilderComponentState = _BuilderComponentState.NOTHING_DEFINED
 
     _output_handler: Optional[BaseHandler] = None
     _output_serializer: Optional[MessageSerializer] = None
     _message_writer: Optional[MessageWriter] = None
-    _output_uri: Optional[str] = None
     _output_state: _BuilderComponentState = _BuilderComponentState.NOTHING_DEFINED
 
     _stream_decorators: List[Callable[[Iterable], Iterable]]
@@ -290,18 +183,6 @@ class PipelineBuilder:
             self._stream_decorators.append(decorator)
         return self
 
-    def with_input_from_uri(self, uri: str) -> "PipelineBuilder":
-        if uri is not None:
-            self._input_uri = uri
-            self._input_state |= _BuilderComponentState.URI_DEFINED
-        return self
-
-    def with_output_from_uri(self, uri: str) -> "PipelineBuilder":
-        if uri is not None:
-            self._output_uri = uri
-            self._output_state |= _BuilderComponentState.URI_DEFINED
-        return self
-
     def add_transformation(self, transformation) -> "PipelineBuilder":
         raise NotImplementedError
 
@@ -321,53 +202,14 @@ class PipelineBuilder:
         if not self._input_state.is_valid():
             self._handle_invalid_input_state()
             return
-
-        if self._input_state == _BuilderComponentState.NOTHING_DEFINED:
-            message_reader = self._build_default_message_reader()
-
-        elif self._input_state == _BuilderComponentState.READER_WRITER_DEFINED:
-            message_reader = self._message_reader
-
-        elif self._input_state == _BuilderComponentState.HANDLER_SERIALIZER_DEFINED:
-            message_reader = HandlerSerializerMessageReader(self._input_handler, self._input_serializer)
-
-        elif self._input_state == _BuilderComponentState.URI_DEFINED:
-            message_reader = self._build_message_reader_from_uri()
-
-        else:
-            raise RuntimeError(
-                "This shouldn't happen. We have a valid input state but no way of creating the message reader for it."
-            )
-
+        message_reader = HandlerSerializerMessageReader(self._input_handler)
         if self._start is not None:
             message_reader.seek(self._start)
         return message_reader
 
-    def _build_default_message_reader(self) -> MessageReader:
-        return HandlerSerializerMessageReader(
-            self._create_default_input_handler(), self._create_default_input_serializer()
-        )
-
-    def _build_message_reader_from_uri(self) -> MessageReader:
-        uri_config = UriConfig(self._input_uri)
-        return HandlerSerializerMessageReader(
-            handler=create_handler(uri_config.handler_config),
-            message_serializer=MessageSerializer(
-                key_serializer=create_serializer(uri_config.key_serializer_config),
-                value_serializer=create_serializer(uri_config.value_serializer_config),
-            ),
-        )
-
     def _handle_invalid_input_state(self) -> None:
         if _BuilderComponentState.READER_WRITER_DEFINED in self._input_state:
             self._errors.append("Input reader was supplied.")
-        if _BuilderComponentState.URI_DEFINED in self._input_state:
-            self._errors.append("Input uri was supplied.")
-        if _BuilderComponentState.HANDLER_SERIALIZER_DEFINED in self._input_state:
-            self._errors.append("Input serializer and handler were supplied.")
-
-    def _create_default_input_handler(self) -> BaseHandler:
-        return PipeHandler(PipeHandlerConfig(file=sys.stdout))
 
     def _create_default_input_serializer(self) -> MessageSerializer:
         serializer = StringSerializer(config=StringSerializerConfig())
@@ -378,38 +220,13 @@ class PipelineBuilder:
             self._handle_invalid_output_state()
             return
 
-        if self._output_state == _BuilderComponentState.NOTHING_DEFINED:
-            return self._build_default_message_writer()
-
         if self._output_state == _BuilderComponentState.READER_WRITER_DEFINED:
             return self._message_writer
-
-        if self._output_state == _BuilderComponentState.HANDLER_SERIALIZER_DEFINED:
-            return HandlerSerializerMessageWriter(self._output_handler, self._output_serializer)
-
-        if self._output_state == _BuilderComponentState.URI_DEFINED:
-            return self._build_message_writer_from_uri()
-
-    def _build_default_message_writer(self) -> MessageWriter:
-        return HandlerSerializerMessageWriter(
-            self._create_default_output_handler(), self._create_default_output_serializer()
-        )
-
-    def _build_message_writer_from_uri(self) -> MessageWriter:
-        uri_config = UriConfig(self._output_uri)
-        return HandlerSerializerMessageWriter(
-            handler=create_handler(uri_config.handler_config),
-            message_serializer=MessageSerializer(
-                key_serializer=create_serializer(uri_config.key_serializer_config),
-                value_serializer=create_serializer(uri_config.value_serializer_config),
-            ),
-        )
+        return HandlerSerializerMessageWriter(self._output_handler)
 
     def _handle_invalid_output_state(self) -> None:
         if _BuilderComponentState.READER_WRITER_DEFINED in self._output_state:
             self._errors.append("Output writer was supplied.")
-        if _BuilderComponentState.URI_DEFINED in self._output_state:
-            self._errors.append("Output uri was supplied.")
         if _BuilderComponentState.HANDLER_SERIALIZER_DEFINED in self._output_state:
             self._errors.append("Output serializer and handler were supplied.")
 

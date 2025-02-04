@@ -1,4 +1,11 @@
+from esque.io.messages import PrintableMessage
+
+
 class StreamEvent:
+    message: PrintableMessage = None
+
+
+class StoppableEvent(StreamEvent):
     """
     An event that happened on a stream.
     Check :attr:`StreamEvent.partition` to see which partition this event occurred on.

@@ -64,22 +64,7 @@ class BaseHandler(ABC):
         """
         raise NotImplementedError
 
-    def binary_message_stream(self) -> Iterable[Union[PrintableMessage, StreamEvent]]:
-        """
-        Read :class:`BinaryMessage`s from this handler's source until the source's permanent end is reached.
-        Yields an object of :class:`StreamEvent` to indicate certain events that may happen while reading from the
-        source.
-        For example if the handler has reached a permanent end, like the end of a file or a closed stream, then
-        it will return a :class:`PermanentEndOfStream` object.
-        If the handler has reached a temporary end (e.g. the end of a topic was reached but new messages might come in
-        at some point) then it will return an object of :class:`TemporaryEndOfStream`.
-        Both of these classes are subclasses of :class:`EndOfStream`.
-
-        The last object returned before the iterable ends is always an instance of :class:`PermanentEndOfStream`.
-
-        :raises EsqueIOHandlerReadException: When there was a failure accessing the source. Like a broken pipe.
-        :returns: Iterable yielding all messages from this handler's source until a permanent end was reached.
-        """
+    def stream(self) -> Iterable[Union[PrintableMessage, StreamEvent]]:
         while True:
             msg = self.read_message()
             yield msg

@@ -2,7 +2,6 @@ import dataclasses
 import datetime
 from typing import List, NamedTuple, Optional, Union
 
-
 class MessageHeader(NamedTuple):
     key: str
     value: Optional[str]

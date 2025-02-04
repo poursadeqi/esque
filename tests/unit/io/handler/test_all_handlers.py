@@ -36,7 +36,7 @@ def test_write_read_many_messages(
     output_handler.write_many_messages(binary_messages)
     output_handler.close()
     actual_messages = list(
-        skip_stream_events(stop_at_temporary_end_of_all_stream_partitions(input_handler.binary_message_stream()))
+        skip_stream_events(stop_at_temporary_end_of_all_stream_partitions(input_handler.stream()))
     )
     actual_messages.sort(key=attrgetter("timestamp"))
     input_handler.close()
@@ -60,7 +60,7 @@ def test_seek(printable_messages, input_handler: BaseHandler, output_handler: Ba
     output_handler.close()
 
     input_handler.seek(seek_offset)
-    actual_messages = list(input_handler.binary_message_stream())
+    actual_messages = list(input_handler.stream())
     input_handler.close()
 
     actual_messages.sort(key=attrgetter("timestamp"))

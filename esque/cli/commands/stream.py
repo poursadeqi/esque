@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import click
+from click.shell_completion import shell_complete
 
 from esque.cli.autocomplete import list_consumergroups, list_contexts, list_topics
 from esque.cli.options import State, default_options
@@ -23,34 +24,81 @@ from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_t
 
 @dataclass
 class ConsumeOptions:
-    topic: str
-    from_context: str
+    input_ctx: str
+    input_source: str
+    input_key_deserializer: str
+    input_value_deserializer: str
+    input_key_struct_format: str
+    input_value_struct_format: str
+    input_topic: str
+    consumer_group: str
+    preserve_order: bool
+
+    output_ctx: str
+    output_dest: str
+    output_topic: str
+    output_key_serializer: str
+    output_value_serializer: str
+    output_key_struct_format: str
+    output_value_struct_format: str
+
     number: Optional[int]
     match: str
     last: bool
-    consumer_group: str
-    preserve_order: bool
     pretty_print: bool
-    key_serializer: str
-    value_serializer: str
-    key_struct_format: str
-    value_struct_format: str
 
 
-@click.command("consume", context_settings={"help_option_names": ["-h", "--help"]})
-@click.argument("topic", shell_complete=list_topics)
+@click.command("stream", context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
-    "-f",
-    "--from",
-    "from_context",
-    metavar="<source_ctx>",
+    "--input-ctx",
+    "input_ctx",
+    metavar="<input_ctx>",
     help="Source context. If not provided, the current context will be used.",
     shell_complete=list_contexts,
     type=click.STRING,
     required=False,
 )
 @click.option(
-    "-n", "--number", metavar="<n>", help="Number of messages.", type=click.INT, default=None, required=False
+    "--output-ctx",
+    metavar="<output_ctx>",
+    help="Source context. If not provided, the current context will be used.",
+    shell_complete=list_contexts,
+    type=click.STRING,
+    required=False,
+)
+@click.option(
+    "--input-topic",
+    "input_topic",
+    metavar="<input_topic>",
+    help="Source context. If not provided, the current context will be used.",
+    shell_complete=list_topics,
+    type=click.STRING,
+    required=False,
+)
+@click.option(
+    "--output-topic",
+    "output_topic",
+    help="Source context. If not provided, the current context will be used.",
+    shell_complete=list_topics,
+    type=click.STRING,
+    required=False,
+)
+@click.option(
+    "--input-source",
+    type=click.Choice(["kafka", "stdin"], case_sensitive=False),
+    help="input source",
+    default="kafka",
+)
+@click.option(
+    "--output-dest",
+    type=click.Choice(["kafka", "stdout", "stderr"], case_sensitive=False),
+    help="output destination",
+    default="stdout",
+)
+@click.option(
+    "-n", "--number",
+    metavar="<n>",
+    help="Number of messages.", type=click.INT, default=None, required=False
 )
 @click.option(
     "-m",
@@ -60,28 +108,36 @@ class ConsumeOptions:
     type=click.STRING,
     required=False,
 )
+@click.option("--last/--first",
+              help="Start consuming from the earliest or latest offset in the topic.""Latest means at the end of the topic _not including_ the last message(s),""so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
+              default=False)
+@click.option("--input-key-struct-format", help="Set this flag to set encoding for key", type=str)
+@click.option("--input-value-struct-format", help="Set this flag to set output encoding for value.", type=str)
+@click.option("--output-key-struct-format", help="Set this flag to set encoding for key", type=str)
+@click.option("--output-value-struct-format", help="Set this flag to set output encoding for value.", type=str)
 @click.option(
-    "--last/--first",
-    help="Start consuming from the earliest or latest offset in the topic."
-         "Latest means at the end of the topic _not including_ the last message(s),"
-         "so if no new data is coming in nothing will be consumed.",
-    default=False,
-)
-@click.option("--key-struct-format", help="Set this flag to set encoding for key", type=str)
-@click.option("--value-struct-format", help="Set this flag to set output encoding for value.", type=str)
-@click.option(
-    "-k",
-    "--key-serializer",
+    "--input-key-deserializer",
     type=click.Choice(["str", "binary", "avro", "proto", "struct"], case_sensitive=False),
     help="Specify deserialization for keys",
     default="binary",
 )
 @click.option(
-    "-v",
-    "--value-serializer",
+    "--input-value-deserializer",
     type=click.Choice(["str", "binary", "avro", "proto", "struct"], case_sensitive=False),
     help="Specify deserialization for keys",
     default="binary",
+)
+@click.option(
+    "--output-key-serializer",
+    type=click.Choice(["str", "binary", "avro", "proto", "struct"], case_sensitive=False),
+    help="Specify deserialization for keys",
+    default="str",
+)
+@click.option(
+    "--output-value-serializer",
+    type=click.Choice(["str", "binary", "avro", "proto", "struct"], case_sensitive=False),
+    help="Specify deserialization for keys",
+    default="str",
 )
 @click.option(
     "-c",
@@ -111,7 +167,7 @@ class ConsumeOptions:
     is_flag=True,
 )
 @default_options
-def consume(state: State, **kwargs):
+def stream(state: State, **kwargs):
     """Consume messages from a topic.
 
     Read messages from a given topic in a given context. These messages will be written into STDOUT.
@@ -141,15 +197,31 @@ def consume(state: State, **kwargs):
     """
     consumer_options = ConsumeOptions(**kwargs)
 
-    if not consumer_options.from_context:
-        consumer_options.from_context = state.config.current_context
-    state.config.context_switch(consumer_options.from_context)
+    if not consumer_options.input_ctx:
+        consumer_options.input_ctx = state.config.current_context
+    state.config.context_switch(consumer_options.input_ctx)
 
-    read_serializer = create_key_value_serializer(state, consumer_options)
+    input_deserializer = create_key_value_serializer(
+        state,
+        consumer_options.input_key_deserializer,
+        consumer_options.input_key_struct_format,
+        consumer_options.input_value_deserializer,
+        consumer_options.input_value_struct_format,
+        consumer_options
+    )
+
+    output_serializer = create_key_value_serializer(
+        state,
+        consumer_options.output_key_serializer,
+        consumer_options.output_key_struct_format,
+        consumer_options.output_value_serializer,
+        consumer_options.output_value_struct_format,
+        consumer_options
+    )
 
     builder = PipelineBuilder()
-    builder.with_input_handler(create_input_handler(read_serializer, consumer_options))
-    builder.with_output_handler(create_output_handler(consumer_options))
+    builder.with_input_handler(create_input_handler(input_deserializer, consumer_options))
+    builder.with_output_handler(create_output_handler(output_serializer, consumer_options))
 
     if consumer_options.last:
         start = KafkaHandler.OFFSET_AFTER_LAST_MESSAGE
@@ -160,7 +232,7 @@ def consume(state: State, **kwargs):
 
     if consumer_options.preserve_order:
         topic_data = Cluster().topic_controller.get_cluster_topic(
-            consumer_options.topic, retrieve_partition_watermarks=False
+            consumer_options.input_topic, retrieve_partition_watermarks=False
         )
         builder.with_stream_decorator(yield_messages_sorted_by_timestamp(len(topic_data.partitions)))
 
@@ -179,26 +251,32 @@ def create_input_handler(read_serializer: MessageSerializer, consumer_options: C
     if not consumer_group: consumer_group = ESQUE_GROUP_ID
     return KafkaHandler(KafkaHandlerConfig(
         read_serializer=read_serializer,
-        context=consumer_options.from_context,
-        topic=consumer_options.topic,
+        context=consumer_options.input_ctx,
+        topic=consumer_options.input_topic,
         consumer_group_id=consumer_group)
     )
 
 
-def create_key_value_serializer(state: State, consumer_options: ConsumeOptions) -> MessageSerializer:
-    key_serializer = create_serializer(
-        state, consumer_options.key_serializer, consumer_options.key_struct_format, consumer_options
-    )
-
-    val_serializer = create_serializer(
-        state, consumer_options.value_serializer, consumer_options.value_struct_format, consumer_options
-    )
+def create_key_value_serializer(
+        state: State,
+        key_deserializer: str,
+        key_struct_format: str,
+        val_deserializer: str,
+        val_struct_format: str,
+        consumer_options: ConsumeOptions
+) -> MessageSerializer:
+    key_serializer = create_serializer(state, key_deserializer, key_struct_format, consumer_options)
+    val_serializer = create_serializer(state, val_deserializer, val_struct_format, consumer_options)
 
     return MessageSerializer(key=key_serializer, value=val_serializer)
 
 
-def create_output_handler(consumer_options: ConsumeOptions):
-    return PipeHandler(PipeHandlerConfig(file=sys.stdout, pretty_print=consumer_options.pretty_print))
+def create_output_handler(serializer: MessageSerializer, consumer_options: ConsumeOptions):
+    return PipeHandler(
+        PipeHandlerConfig(
+            file=sys.stdout,
+            pretty_print=consumer_options.pretty_print)
+    )
 
 
 def create_serializer(state: State, serializer: str, struct_format: str, consumer_options: ConsumeOptions):
@@ -210,12 +288,12 @@ def create_serializer(state: State, serializer: str, struct_format: str, consume
         )
     elif serializer == "str":
         serializer = StringSerializer(StringSerializerConfig())
-    elif serializer == "proto" and consumer_options.topic not in state.config.proto:
+    elif serializer == "proto" and consumer_options.input_topic not in state.config.proto:
         raise RuntimeError(
             "topic name was not found in proto configs. please add it to the configuration or use raw serializer"
         )
-    elif serializer == "proto" and consumer_options.topic in state.config.proto:
-        proto_cfg = state.config.proto[consumer_options.topic]
+    elif serializer == "proto" and consumer_options.input_topic in state.config.proto:
+        proto_cfg = state.config.proto[consumer_options.input_topic]
         serializer = ProtoSerializer(
             ProtoSerializerConfig(
                 protoc_py_path=proto_cfg.get("protoc_py_path"),
