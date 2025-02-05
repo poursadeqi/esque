@@ -3,22 +3,18 @@ from typing import Callable, Dict, Iterable, Iterator, Tuple, TypeVar, Union
 
 import more_itertools
 
-from esque.io.messages import PrintableMessage
 from esque.io.stream_events import EndOfStream, NthMessageRead, StreamEvent
 from esque.ruleparser.ruleengine import RuleTree
 
-M = TypeVar("M", bound=Union[PrintableMessage])
-MessageStream = Iterable[Union[M, StreamEvent]]
 
-
-def skip_stream_events(iterable: MessageStream) -> Iterable[M]:
-    for elem in iterable:
+def skip_stream_events(stream: Iterable[StreamEvent]) -> Iterable[StreamEvent]:
+    for elem in stream:
         if isinstance(elem, StreamEvent):
             continue
         yield elem
 
 
-def stop_at_temporary_end_of_stream(iterable: MessageStream) -> MessageStream:
+def stop_at_temporary_end_of_stream(iterable: Iterable[StreamEvent]) -> Iterable[StreamEvent]:
     """
     Enables an iterator to be consumed until an end of stream is reached. Meant to be used with :meth:`BaseHandler.message_stream()`.
     Check the docstring for :meth:`BaseHandler.message_stream()` for a more thorough definition of a temporary end of stream.
@@ -34,7 +30,7 @@ def stop_at_temporary_end_of_stream(iterable: MessageStream) -> MessageStream:
             break
 
 
-def stop_at_temporary_end_of_all_stream_partitions(iterable: MessageStream) -> MessageStream:
+def stop_at_temporary_end_of_all_stream_partitions(iterable: Iterable[StreamEvent]) -> Iterable[StreamEvent]:
     """
     Enables an iterator to be consumed until the end of all the stream's partitions is reached.
     Meant to be used with :meth:`BaseHandler.message_stream()`.
@@ -51,7 +47,7 @@ def stop_at_temporary_end_of_all_stream_partitions(iterable: MessageStream) -> M
             break
 
 
-def stop_after_nth_message(n: int) -> Callable[[MessageStream], MessageStream]:
+def stop_after_nth_message(n: int) -> Callable[[Iterable[StreamEvent]], Iterable[StreamEvent]]:
     """
     Creates a decorator that enables an iterator to be consumed until n messages have been read.
     Meant to be used with :meth:`BaseHandler.message_stream()`.
@@ -60,11 +56,11 @@ def stop_after_nth_message(n: int) -> Callable[[MessageStream], MessageStream]:
     :return: The iterable decorator which stops after the nth consumed message
     """
 
-    def _stop_after_nth_message(iterable: MessageStream):
+    def _stop_after_nth_message(iterable: Iterable[StreamEvent]):
         i = 0
         for elem in iterable:
             yield elem
-            if not isinstance(elem, StreamEvent):
+            if elem.message:
                 i += 1
             if i == n:
                 yield NthMessageRead(f"{n} messages have been read.")
@@ -73,7 +69,7 @@ def stop_after_nth_message(n: int) -> Callable[[MessageStream], MessageStream]:
     return _stop_after_nth_message
 
 
-def skip_messages_with_offset_below(lbound: int) -> Callable[[MessageStream], MessageStream]:
+def skip_messages_with_offset_below(lbound: int) -> Callable[[Iterable[StreamEvent]], Iterable[StreamEvent]]:
     """
     Creates a decorator that enables an iterator to jump over messages until their offset is greater or equal to
     `lbound`.
@@ -83,7 +79,7 @@ def skip_messages_with_offset_below(lbound: int) -> Callable[[MessageStream], Me
     :return: The iterable decorator which skips over messages with offset below `lbound`
     """
 
-    def _skip_messages_with_offset_below(iterable: MessageStream):
+    def _skip_messages_with_offset_below(iterable: Iterable[StreamEvent]):
         for elem in iterable:
             if isinstance(elem, StreamEvent) or elem.offset >= lbound:
                 yield elem
@@ -91,8 +87,9 @@ def skip_messages_with_offset_below(lbound: int) -> Callable[[MessageStream], Me
     return _skip_messages_with_offset_below
 
 
-def yield_messages_sorted_by_timestamp(partition_count: int) -> Callable[[MessageStream], MessageStream]:
-    def _yield_messages_sorted_by_timestamp(stream: MessageStream) -> MessageStream:
+def yield_messages_sorted_by_timestamp(partition_count: int) -> Callable[
+    [Iterable[StreamEvent]], Iterable[StreamEvent]]:
+    def _yield_messages_sorted_by_timestamp(stream: Iterable[StreamEvent]) -> Iterable[StreamEvent]:
         partition_buffers, global_event_buffer = create_partition_buffers(stream)
         yield from sorted_message_stream(partition_buffers)
 
@@ -147,13 +144,13 @@ def yield_messages_sorted_by_timestamp(partition_count: int) -> Callable[[Messag
 
 def yield_only_matching_messages(
         match_expr_or_rule_tree: Union[str, RuleTree],
-) -> Callable[[MessageStream], MessageStream]:
+) -> Callable[[Iterable[StreamEvent]], Iterable[StreamEvent]]:
     if not isinstance(match_expr_or_rule_tree, RuleTree):
         tree = RuleTree(match_expr_or_rule_tree)
     else:
         tree = match_expr_or_rule_tree
 
-    def _yield_only_matching_messages(message_stream: MessageStream) -> MessageStream:
+    def _yield_only_matching_messages(message_stream: Iterable[StreamEvent]) -> Iterable[StreamEvent]:
         for msg in message_stream:
             if isinstance(msg, StreamEvent):
                 yield msg
@@ -169,10 +166,10 @@ class EventCounter:
         self.stream_event_count: int = 0
 
 
-def event_counter() -> Tuple[EventCounter, Callable[[MessageStream], MessageStream]]:
+def event_counter() -> Tuple[EventCounter, Callable[[Iterable[StreamEvent]], Iterable[StreamEvent]]]:
     counter = EventCounter()
 
-    def event_counter_(message_stream: MessageStream) -> MessageStream:
+    def event_counter_(message_stream: Iterable[StreamEvent]) -> Iterable[StreamEvent]:
         nonlocal counter
         for msg in message_stream:
             if isinstance(msg, StreamEvent):

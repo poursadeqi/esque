@@ -3,15 +3,10 @@ from esque.io.messages import PrintableMessage
 
 
 class StreamEvent:
-    __message: PrintableMessage = None
+    message: PrintableMessage = None
 
-    def __init__(self, message: PrintableMessage = None):
-        self.__message = message
-
-    def get_message(self) -> PrintableMessage:
-        if self.__message is None:
-            raise EsqueIOException("didn't expect get_message to be called when message is none.")
-        return self.__message
+    def __init__(self, printable_message: PrintableMessage = None):
+        self.message = printable_message
 
 
 class StoppableEvent(StreamEvent):

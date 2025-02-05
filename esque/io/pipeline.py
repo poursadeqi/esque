@@ -211,10 +211,6 @@ class PipelineBuilder:
         if _BuilderComponentState.READER_WRITER_DEFINED in self._input_state:
             self._errors.append("Input reader was supplied.")
 
-    def _create_default_input_serializer(self) -> MessageSerializer:
-        serializer = StringSerializer(config=StringSerializerConfig())
-        return MessageSerializer(key=serializer, value=serializer)
-
     def _build_message_writer(self) -> Optional[MessageWriter]:
         if not self._output_state.is_valid():
             self._handle_invalid_output_state()
@@ -227,13 +223,6 @@ class PipelineBuilder:
     def _handle_invalid_output_state(self) -> None:
         if _BuilderComponentState.READER_WRITER_DEFINED in self._output_state:
             self._errors.append("Output writer was supplied.")
-        if _BuilderComponentState.HANDLER_SERIALIZER_DEFINED in self._output_state:
-            self._errors.append("Output serializer and handler were supplied.")
-
-    def _create_default_output_handler(self) -> BaseHandler:
-        return PipeHandler(PipeHandlerConfig(file=sys.stdout))
-
-    _create_default_output_serializer = _create_default_input_serializer
 
     def with_range(self, start: Optional[int] = None, limit: Optional[int] = None):
         self._start = start

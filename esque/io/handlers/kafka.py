@@ -104,8 +104,8 @@ class KafkaHandler(BaseHandler):
         self._flush()
 
     def write_many_messages(self, message_stream: Iterable[StreamEvent]) -> None:
-        for binary_message in message_stream:
-            self._produce_single_message(printable_message=binary_message.get_message())
+        for event in message_stream:
+            self._produce_single_message(printable_message=event.get_message())
         self._flush()
 
     def _produce_single_message(self, printable_message: PrintableMessage) -> None:

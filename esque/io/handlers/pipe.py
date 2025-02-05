@@ -26,15 +26,17 @@ class PipeHandler(BaseHandler):
         self._left_bound = -1
 
     def write_message(self, event: StreamEvent) -> None:
+        if not event.message:
+            return
         self._console.print_json(
             json.dumps(
                 {
-                    "key": event.get_message().key.payload,
-                    "value": event.get_message().value.payload,
-                    "partition": event.get_message().partition,
-                    "offset": event.get_message().offset,
-                    "timestamp": event.get_message().timestamp.isoformat(),
-                    "headers": [{"key": h.key, "value": h.value} for h in event.get_message().headers],
+                    "key": event.message.key.payload,
+                    "value": event.message.value.payload,
+                    "partition": event.message.partition,
+                    "offset": event.message.offset,
+                    "timestamp": event.message.timestamp.isoformat(),
+                    "headers": [{"key": h.key, "value": h.value} for h in event.message.headers],
                 }
             ),
             indent=2 if self.config.pretty_print else None,
