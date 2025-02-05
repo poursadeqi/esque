@@ -17,7 +17,7 @@ class StringSerializer(DataSerializer):
     def serialize(self, data: MessagePayload) -> Optional[str]:
         return data.payload
 
-    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
+    def deserialize(self, raw_data: MessagePayload) -> MessagePayload:
         if raw_data is None:
             return MessagePayload()
         return MessagePayload(payload=raw_data.decode(encoding=self.config.encoding, errors="replace"))

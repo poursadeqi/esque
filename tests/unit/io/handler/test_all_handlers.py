@@ -17,11 +17,11 @@ def test_write_read_message(
         output_handler.write_message(msg)
     output_handler.close()
 
-    messages_retrieved: List[WritableMessage] = []
+    messages_retrieved: List[Message] = []
     for _ in range(2):
         while True:
             actual_message = input_handler.read_message()
-            if isinstance(actual_message, WritableMessage):
+            if isinstance(actual_message, Message):
                 break
         messages_retrieved.append(actual_message)
 
@@ -31,9 +31,9 @@ def test_write_read_message(
 
 @parametrize_with_cases("input_handler, output_handler")
 def test_write_read_many_messages(
-    binary_messages: List[WritableMessage], input_handler: BaseHandler, output_handler: BaseHandler
+    binary_messages: List[Message], input_handler: BaseHandler, output_handler: BaseHandler
 ):
-    output_handler.write_many_messages(binary_messages)
+    output_handler.write_many_messages(messages)
     output_handler.close()
     actual_messages = list(
         skip_stream_events(stop_at_temporary_end_of_all_stream_partitions(input_handler.stream()))
@@ -44,12 +44,12 @@ def test_write_read_many_messages(
 
 
 @parametrize_with_cases("_, output_handler")
-def test_write_single_stream_event(binary_messages: List[WritableMessage], output_handler: BaseHandler, _):
+def test_write_single_stream_event(binary_messages: List[Message], output_handler: BaseHandler, _):
     output_handler.write_message(TemporaryEndOfPartition("test", StreamEvent.ALL_PARTITIONS))
 
 
 @parametrize_with_cases("_, output_handler")
-def test_write_many_stream_events(binary_messages: List[WritableMessage], output_handler: BaseHandler, _):
+def test_write_many_stream_events(binary_messages: List[Message], output_handler: BaseHandler, _):
     output_handler.write_many_messages([TemporaryEndOfPartition("test", StreamEvent.ALL_PARTITIONS)])
 
 

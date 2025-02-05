@@ -3,9 +3,8 @@ from typing import List
 import pytest
 from pytest_cases import fixture
 
-from esque.io.data_types import UnknownDataType
 from esque.io.messages import MessagePayload
-from esque.io.serializers.binary import BinarySerializer, BinarySerializerConfig
+from esque.io.serializers.binary import BinarySerializer
 
 
 @fixture

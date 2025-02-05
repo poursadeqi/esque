@@ -302,7 +302,7 @@ def create_serializer(state: State, serializer: str, struct_format: str, consume
             )
         )
     elif serializer == "struct":
-        serializer = StructSerializer(StructSerializerConfig(struct_format=struct_format))
+        serializer = StructSerializer(StructSerializerConfig(deserializer_struct_format=struct_format))
     else:
         serializer = BinarySerializer()
     return serializer

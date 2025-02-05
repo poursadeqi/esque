@@ -1,5 +1,5 @@
 import dataclasses
-from struct import unpack
+from struct import unpack, pack
 from typing import Optional
 
 from esque.io.messages import MessagePayload
@@ -8,7 +8,8 @@ from esque.io.serializers.base import DataSerializer
 
 @dataclasses.dataclass()
 class StructSerializerConfig:
-    struct_format: str
+    deserializer_struct_format: str = dataclasses.field(init=False)
+    serializer_struct_format: str = dataclasses.field(init=False)
 
 
 class StructSerializer(DataSerializer):
@@ -18,12 +19,12 @@ class StructSerializer(DataSerializer):
     def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
         if raw_data is None:
             return MessagePayload()
-        output = unpack(self.config.struct_format, raw_data)[0]
+        output = unpack(self.config.deserializer_struct_format, raw_data)[0]
         return MessagePayload(payload=output)
 
-    def serialize(self, data: MessagePayload) -> str:
+    def serialize(self, data: MessagePayload) -> MessagePayload:
         if data.is_empty():
-            return ""
-        # if not isinstance(data.payload, bytes):
-        #     raise TypeError(f"Data payload has to be bytes, not {type(data.payload).__name__}!")
-        return data.payload
+            return MessagePayload(b"")
+        if not isinstance(data.payload, bytes):
+            raise TypeError(f"Data payload must be bytes or bytearray, not {type(data.payload).__name__}!")
+        return MessagePayload(pack(self.config.serializer_struct_format, data.payload))

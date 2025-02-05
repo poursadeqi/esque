@@ -4,7 +4,7 @@ import pytest
 from pytest_cases import fixture
 
 from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState
-from esque.io.messages import WritableMessage, Message
+from esque.io.messages import Message
 from esque.io.pipeline import PipelineBuilder
 from esque.io.serializers.base import MessageSerializer
 from esque.io.stream_decorators import skip_stream_events
@@ -27,10 +27,10 @@ def test_create_empty_builder():
 
 
 def test_create_pipeline_with_handler_and_serializer_input(
-    dummy_handler: DummyHandler,
-    string_message_serializer: MessageSerializer,
-    binary_messages: List[WritableMessage],
-    string_messages: List[Message],
+        dummy_handler: DummyHandler,
+        string_message_serializer: MessageSerializer,
+        binary_messages: List[Message],
+        string_messages: List[Message],
 ):
     builder = PipelineBuilder()
     builder.with_input_handler(dummy_handler)
@@ -44,10 +44,10 @@ def test_create_pipeline_with_handler_and_serializer_input(
 
 
 def test_create_pipeline_with_handler_and_serializer_output(
-    dummy_handler: DummyHandler,
-    string_message_serializer: MessageSerializer,
-    binary_messages: List[WritableMessage],
-    string_messages: List[Message],
+        dummy_handler: DummyHandler,
+        string_message_serializer: MessageSerializer,
+        binary_messages: List[Message],
+        string_messages: List[Message],
 ):
     builder = PipelineBuilder()
     builder.with_output_handler(dummy_handler)
@@ -59,9 +59,9 @@ def test_create_pipeline_with_handler_and_serializer_output(
 
 
 def test_create_pipeline_with_message_reader(
-    dummy_message_reader: DummyMessageReader,
-    binary_messages: List[WritableMessage],
-    string_messages: List[Message],
+        dummy_message_reader: DummyMessageReader,
+        binary_messages: List[Message],
+        string_messages: List[Message],
 ):
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)
@@ -73,7 +73,7 @@ def test_create_pipeline_with_message_reader(
 
 
 def test_create_pipeline_with_message_writer(
-    dummy_message_writer, binary_messages: List[WritableMessage], string_messages: List[Message]
+        dummy_message_writer, binary_messages: List[Message], string_messages: List[Message]
 ):
     builder = PipelineBuilder()
     builder.with_message_writer(dummy_message_writer)
@@ -101,7 +101,7 @@ def test_build_fails_with_only_serializer(string_message_serializer: MessageSeri
 
 
 def test_build_fails_with_message_reader_and_serializer(
-    dummy_message_reader: DummyMessageReader, string_message_serializer: MessageSerializer
+        dummy_message_reader: DummyMessageReader, string_message_serializer: MessageSerializer
 ):
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)
@@ -112,7 +112,7 @@ def test_build_fails_with_message_reader_and_serializer(
 
 
 def test_build_fails_with_message_reader_and_handler(
-    dummy_message_reader: DummyMessageReader, dummy_handler: DummyHandler
+        dummy_message_reader: DummyMessageReader, dummy_handler: DummyHandler
 ):
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)
@@ -123,7 +123,8 @@ def test_build_fails_with_message_reader_and_handler(
 
 
 def test_build_fails_with_message_reader_serializer_and_handler(
-    dummy_message_reader: DummyMessageReader, string_message_serializer: MessageSerializer, dummy_handler: DummyHandler
+        dummy_message_reader: DummyMessageReader, string_message_serializer: MessageSerializer,
+        dummy_handler: DummyHandler
 ):
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)
@@ -135,10 +136,10 @@ def test_build_fails_with_message_reader_serializer_and_handler(
 
 
 def test_build_fails_with_message_reader_and_uri(
-    dummy_message_reader: DummyMessageReader,
-    string_message_serializer: MessageSerializer,
-    dummy_handler: DummyHandler,
-    input_uri: str,
+        dummy_message_reader: DummyMessageReader,
+        string_message_serializer: MessageSerializer,
+        dummy_handler: DummyHandler,
+        input_uri: str,
 ):
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)
@@ -149,7 +150,7 @@ def test_build_fails_with_message_reader_and_uri(
 
 
 def test_build_fails_with_message_writer_and_serializer(
-    dummy_message_writer: DummyMessageWriter, string_message_serializer: MessageSerializer
+        dummy_message_writer: DummyMessageWriter, string_message_serializer: MessageSerializer
 ):
     builder = PipelineBuilder()
     builder.with_message_writer(dummy_message_writer)
@@ -160,7 +161,7 @@ def test_build_fails_with_message_writer_and_serializer(
 
 
 def test_build_fails_with_message_writer_and_handler(
-    dummy_message_writer: DummyMessageWriter, dummy_handler: DummyHandler
+        dummy_message_writer: DummyMessageWriter, dummy_handler: DummyHandler
 ):
     builder = PipelineBuilder()
     builder.with_message_writer(dummy_message_writer)
@@ -171,7 +172,8 @@ def test_build_fails_with_message_writer_and_handler(
 
 
 def test_build_fails_with_message_writer_serializer_and_handler(
-    dummy_message_writer: DummyMessageWriter, string_message_serializer: MessageSerializer, dummy_handler: DummyHandler
+        dummy_message_writer: DummyMessageWriter, string_message_serializer: MessageSerializer,
+        dummy_handler: DummyHandler
 ):
     builder = PipelineBuilder()
     builder.with_message_writer(dummy_message_writer)
@@ -183,10 +185,10 @@ def test_build_fails_with_message_writer_serializer_and_handler(
 
 
 def test_build_fails_with_message_writer_and_uri(
-    dummy_message_writer: DummyMessageWriter,
-    string_message_serializer: MessageSerializer,
-    dummy_handler: DummyHandler,
-    output_uri: str,
+        dummy_message_writer: DummyMessageWriter,
+        string_message_serializer: MessageSerializer,
+        dummy_handler: DummyHandler,
+        output_uri: str,
 ):
     builder = PipelineBuilder()
     builder.with_message_writer(dummy_message_writer)

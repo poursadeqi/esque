@@ -2,15 +2,14 @@ import datetime
 from operator import attrgetter
 from typing import Iterable, Tuple
 
-from esque.io.messages import WritableMessage
+from esque.io.messages import Message
 from esque.io.stream_events import TemporaryEndOfPartition
 
-# partition, input, expected_output
-SortCase = Tuple[int, Iterable[WritableMessage], Iterable[WritableMessage]]
+SortCase = Tuple[int, Iterable[Message], Iterable[Message]]
 
 
-def mk_binary_message(partition: int, offset: int, ts: int) -> WritableMessage:
-    return WritableMessage(
+def mk_binary_message(partition: int, offset: int, ts: int) -> Message:
+    return Message(
         key=f"k_p{partition}_o{offset}".encode("utf-8"),
         value=f"v_p{partition}_o{offset}".encode("utf-8"),
         partition=partition,
