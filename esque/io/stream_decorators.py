@@ -69,19 +69,19 @@ def stop_after_nth_message(n: int) -> Callable[[Iterable[StreamEvent]], Iterable
     return _stop_after_nth_message
 
 
-def skip_messages_with_offset_below(lbound: int) -> Callable[[Iterable[StreamEvent]], Iterable[StreamEvent]]:
+def skip_messages_with_offset_below(left_bound: int) -> Callable[[Iterable[StreamEvent]], Iterable[StreamEvent]]:
     """
     Creates a decorator that enables an iterator to jump over messages until their offset is greater or equal to
     `lbound`.
     Meant to be used with :meth:`BaseHandler.message_stream()`.
     The decorator won't skip any :class:StreamEvent objects that it encounters.
-    :param lbound: The offset boundary below which messages should be skipped.
+    :param left_bound: The offset boundary below which messages should be skipped.
     :return: The iterable decorator which skips over messages with offset below `lbound`
     """
 
     def _skip_messages_with_offset_below(iterable: Iterable[StreamEvent]):
         for elem in iterable:
-            if isinstance(elem, StreamEvent) or elem.offset >= lbound:
+            if elem.message is None or elem.message.offset >= left_bound:
                 yield elem
 
     return _skip_messages_with_offset_below
