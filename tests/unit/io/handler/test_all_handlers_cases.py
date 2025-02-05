@@ -2,7 +2,6 @@ from typing import Callable, NamedTuple, Tuple
 
 import pytest
 
-from esque.io.handlers import BaseHandler
 from esque.io.handlers.kafka import KafkaHandler, KafkaHandlerConfig
 
 

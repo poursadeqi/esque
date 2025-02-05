@@ -2,9 +2,7 @@ from typing import List
 
 from pytest_cases import parametrize_with_cases
 
-from esque.io.messages import WritableMessage
 from esque.io.stream_decorators import (
-    MessageStream,
     skip_messages_with_offset_below,
     skip_stream_events,
     stop_after_nth_message,
