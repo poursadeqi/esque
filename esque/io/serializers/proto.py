@@ -6,7 +6,7 @@ from typing import Optional, Type
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
 
-from esque.io.messages import PrintableMessagePayload
+from esque.io.messages import MessagePayload
 from esque.io.serializers.base import DataSerializer
 
 
@@ -32,14 +32,14 @@ class ProtoSerializer(DataSerializer):
     def __init__(self, config: ProtoSerializerConfig):
         self.config = config
 
-    def serialize(self, data: PrintableMessagePayload) -> Optional[bytes]:
+    def serialize(self, data: MessagePayload) -> Optional[bytes]:
         raise NotImplementedError
 
-    def deserialize(self, raw_data: Optional[bytes]) -> PrintableMessagePayload:
+    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
         if raw_data is None:
-            return PrintableMessagePayload()
+            return MessagePayload()
 
         message = self.config.get_message_class()()
         message.ParseFromString(raw_data)
         payload = MessageToDict(message, preserving_proto_field_name=True, always_print_fields_with_no_presence=True)
-        return PrintableMessagePayload(payload=payload)
+        return MessagePayload(payload=payload)

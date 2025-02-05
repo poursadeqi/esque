@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, TypeVar, Union
 
-from esque.io.messages import PrintableMessage
+from esque.io.messages import Message
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent
 
 H = TypeVar("H", bound="BaseHandler")
@@ -48,7 +48,7 @@ class BaseHandler(ABC):
             self.write_message(message)
 
     @abstractmethod
-    def read_message(self) -> Union[PrintableMessage, StreamEvent]:
+    def read_message(self) -> Union[Message, StreamEvent]:
         """
         Read the next :class:`BinaryMessage` from this handler's source.
         Returns an object of :class:`StreamEvent` to indicate certain events that may happen while reading from the
@@ -64,7 +64,7 @@ class BaseHandler(ABC):
         """
         raise NotImplementedError
 
-    def stream(self) -> Iterable[Union[PrintableMessage, StreamEvent]]:
+    def stream(self) -> Iterable[Union[Message, StreamEvent]]:
         while True:
             msg = self.read_message()
             yield msg

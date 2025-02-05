@@ -10,7 +10,7 @@ from esque.cli.helpers import ensure_approval
 from esque.cli.options import State, default_options
 from esque.config import PING_TOPIC
 from esque.io.handlers.kafka import KafkaHandlerConfig, KafkaHandler
-from esque.io.messages import PrintableMessage
+from esque.io.messages import Message
 from esque.io.stream_decorators import skip_stream_events
 from esque.resources.topic import Topic
 
@@ -96,8 +96,8 @@ def ping(state: State, times: int, wait: int):
     click.echo(f"c2c {stats(c2c_times)}")
 
 
-def key_matches(ping_id: bytes) -> Callable[[PrintableMessage], bool]:
-    def matcher(msg: PrintableMessage) -> bool:
+def key_matches(ping_id: bytes) -> Callable[[Message], bool]:
+    def matcher(msg: Message) -> bool:
         return msg.key == ping_id
 
     return matcher
@@ -107,16 +107,16 @@ def stats(deltas: List[int]) -> str:
     return f"min/avg/max = {min(deltas):.2f}/{(sum(deltas) / len(deltas)):.2f}/{max(deltas):.2f} ms"
 
 
-def create_ping_message(ping_id) -> PrintableMessage:
+def create_ping_message(ping_id) -> Message:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
-    return PrintableMessage(
+    return Message(
         key=ping_id, value=dt_to_bytes(create_time), partition=-1, offset=-1, timestamp=create_time, headers=[]
     )
 
 
-def create_tombstone_message(ping_id) -> PrintableMessage:
+def create_tombstone_message(ping_id) -> Message:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
-    return PrintableMessage(key=ping_id, value=None, partition=-1, offset=-1, timestamp=create_time, headers=[])
+    return Message(key=ping_id, value=None, partition=-1, offset=-1, timestamp=create_time, headers=[])
 
 
 def dt_to_bytes(dt: datetime.datetime) -> bytes:

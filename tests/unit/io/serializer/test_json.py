@@ -3,13 +3,13 @@ from typing import List
 
 from pytest_cases import fixture
 
-from esque.io.messages import PrintableMessagePayload
+from esque.io.messages import MessagePayload
 from esque.io.serializers.json import JsonSerializer, JsonSerializerConfig
 
 CET = datetime.timezone(datetime.timedelta(seconds=3600), "CET")
 
 ORIGINAL_TEST_DATA = [
-    PrintableMessagePayload(
+    MessagePayload(
         {
             "str_field": "Übung",
             "int_field": 1337,
@@ -20,7 +20,7 @@ ORIGINAL_TEST_DATA = [
             "bytes_field": b"\x00\x01\x02",
         },
     ),
-    PrintableMessagePayload({"a": "b"}),
+    MessagePayload({"a": "b"}),
 ]
 
 # Although removing them would make the serialized data more compact, we decided to keep the space after ':' and ','
@@ -36,7 +36,7 @@ EXPECTED_SERIALIZED_DATA = [
 # TODO: after we introduced proper schema handling for the json serializer this would look the same as
 #   Expected data above
 EXPECTED_DESERIALIZED_DATA = [
-    PrintableMessagePayload(
+    MessagePayload(
         {
             "str_field": "Übung",
             "int_field": 1337,
@@ -47,7 +47,7 @@ EXPECTED_DESERIALIZED_DATA = [
             "bytes_field": "AAEC",
         },
     ),
-    PrintableMessagePayload({"a": "b"}),
+    MessagePayload({"a": "b"}),
 ]
 
 
@@ -62,7 +62,7 @@ def test_json_serializer(serializer):
     actual_serialized_data: bytes = serializer.serialize(EXPECTED_DESERIALIZED_DATA[0])
     assert actual_serialized_data == EXPECTED_SERIALIZED_DATA[0]
 
-    actual_deserialized_data: PrintableMessagePayload = serializer.deserialize(EXPECTED_SERIALIZED_DATA[0])
+    actual_deserialized_data: MessagePayload = serializer.deserialize(EXPECTED_SERIALIZED_DATA[0])
     assert actual_deserialized_data == EXPECTED_DESERIALIZED_DATA[0]
 
 
@@ -70,5 +70,5 @@ def test_json_serializer_many(serializer):
     actual_serialized_data: List[bytes] = list(serializer.serialize_many(ORIGINAL_TEST_DATA))
     assert actual_serialized_data == EXPECTED_SERIALIZED_DATA
 
-    actual_deserialized_data: List[PrintableMessagePayload] = list(serializer.deserialize_many(EXPECTED_SERIALIZED_DATA))
+    actual_deserialized_data: List[MessagePayload] = list(serializer.deserialize_many(EXPECTED_SERIALIZED_DATA))
     assert actual_deserialized_data == EXPECTED_DESERIALIZED_DATA

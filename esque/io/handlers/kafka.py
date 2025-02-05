@@ -14,7 +14,7 @@ from esque.io.exceptions import (
 )
 from esque.io.handlers.base import BaseHandler
 from esque.io.handlers.base_config import BaseHandlerConfig
-from esque.io.messages import MessageHeader, PrintableMessage
+from esque.io.messages import MessageHeader, Message
 from esque.io.stream_events import EndOfStream, StreamEvent, TemporaryEndOfPartition
 
 
@@ -108,7 +108,7 @@ class KafkaHandler(BaseHandler):
             self._produce_single_message(printable_message=event.get_message())
         self._flush()
 
-    def _produce_single_message(self, printable_message: PrintableMessage) -> None:
+    def _produce_single_message(self, printable_message: Message) -> None:
         partition_arg = {}
         partition = self._io_to_confluent_partition(printable_message.partition)
         if partition is not None:
@@ -183,7 +183,7 @@ class KafkaHandler(BaseHandler):
 
     def _confluent_to_printable_message(self, consumed_message: Message) -> StreamEvent:
         return StreamEvent(
-            PrintableMessage(
+            Message(
                 key=self.config.read_serializer.key.deserialize(consumed_message.key()),
                 value=self.config.read_serializer.value.deserialize(consumed_message.value()),
                 partition=consumed_message.partition(),

@@ -8,7 +8,7 @@ from typing import Callable, Iterable, List, NamedTuple, Optional, Union
 from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState
 from esque.io.handlers.base import BaseHandler
 from esque.io.handlers.pipe import PipeHandlerConfig, PipeHandler
-from esque.io.messages import PrintableMessage
+from esque.io.messages import Message
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.stream_decorators import stop_after_nth_message
@@ -17,7 +17,7 @@ from esque.io.stream_events import StreamEvent
 
 class MessageReader(ABC):
     @abstractmethod
-    def stream(self) -> Iterable[PrintableMessage]:
+    def stream(self) -> Iterable[Message]:
         raise NotImplementedError
 
     @abstractmethod
@@ -52,7 +52,7 @@ class HandlerSerializerMessageReader(MessageReader):
     def __init__(self, handler: BaseHandler):
         self._handler = handler
 
-    def stream(self) -> Iterable[PrintableMessage]:
+    def stream(self) -> Iterable[Message]:
         return self._handler.stream()
 
     def seek(self, position: int):

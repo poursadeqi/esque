@@ -2,7 +2,7 @@ import dataclasses
 from struct import unpack
 from typing import Optional
 
-from esque.io.messages import PrintableMessagePayload
+from esque.io.messages import MessagePayload
 from esque.io.serializers.base import DataSerializer
 
 
@@ -15,13 +15,13 @@ class StructSerializer(DataSerializer):
     def __init__(self, config: StructSerializerConfig):
         self.config = config
 
-    def deserialize(self, raw_data: Optional[bytes]) -> PrintableMessagePayload:
+    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
         if raw_data is None:
-            return PrintableMessagePayload()
+            return MessagePayload()
         output = unpack(self.config.struct_format, raw_data)[0]
-        return PrintableMessagePayload(payload=output)
+        return MessagePayload(payload=output)
 
-    def serialize(self, data: PrintableMessagePayload) -> str:
+    def serialize(self, data: MessagePayload) -> str:
         if data.is_empty():
             return ""
         # if not isinstance(data.payload, bytes):

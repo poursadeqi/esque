@@ -2,7 +2,7 @@ from typing import List
 
 from pytest_cases import fixture
 
-from esque.io.messages import PrintableMessagePayload
+from esque.io.messages import MessagePayload
 from esque.io.serializers.string import StringSerializer, StringSerializerConfig
 
 
@@ -14,10 +14,10 @@ def serializer_config(request) -> StringSerializerConfig:
 def test_string_serializer(serializer_config):
     string_serializer: StringSerializer = StringSerializer(config=serializer_config)
     raw_message: bytes = "Übung".encode(encoding=serializer_config.encoding)
-    expected_deserialized_message: PrintableMessagePayload = PrintableMessagePayload(
+    expected_deserialized_message: MessagePayload = MessagePayload(
         payload="Übung", data_type=string_serializer.data_type
     )
-    deserialized_message: PrintableMessagePayload = string_serializer.deserialize(raw_message)
+    deserialized_message: MessagePayload = string_serializer.deserialize(raw_message)
     assert deserialized_message == expected_deserialized_message
     serializer_message: bytes = string_serializer.serialize(deserialized_message)
     assert serializer_message == raw_message
@@ -29,11 +29,11 @@ def test_string_serializer_many(serializer_config):
         "Änderung".encode(encoding=serializer_config.encoding),
         "Übung".encode(encoding=serializer_config.encoding),
     ]
-    expected_deserialized_messages: List[PrintableMessagePayload] = [
-        PrintableMessagePayload(payload="Änderung", data_type=string_serializer.data_type),
-        PrintableMessagePayload(payload="Übung", data_type=string_serializer.data_type),
+    expected_deserialized_messages: List[MessagePayload] = [
+        MessagePayload(payload="Änderung", data_type=string_serializer.data_type),
+        MessagePayload(payload="Übung", data_type=string_serializer.data_type),
     ]
-    deserialized_messages: List[PrintableMessagePayload] = list(string_serializer.deserialize_many(raw_messages))
+    deserialized_messages: List[MessagePayload] = list(string_serializer.deserialize_many(raw_messages))
     assert deserialized_messages == expected_deserialized_messages
     serializer_messages: List[bytes] = list(string_serializer.serialize_many(deserialized_messages))
     assert serializer_messages == raw_messages

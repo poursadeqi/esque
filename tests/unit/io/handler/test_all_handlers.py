@@ -4,14 +4,14 @@ from typing import List
 from pytest_cases import parametrize_with_cases
 
 from esque.io.handlers.base import BaseHandler
-from esque.io.messages import  PrintableMessage
+from esque.io.messages import  Message
 from esque.io.stream_decorators import skip_stream_events, stop_at_temporary_end_of_all_stream_partitions
 from esque.io.stream_events import StreamEvent, TemporaryEndOfPartition
 
 
 @parametrize_with_cases("input_handler, output_handler")
 def test_write_read_message(
-    printable_messages: List[PrintableMessage], input_handler: BaseHandler, output_handler: BaseHandler
+    printable_messages: List[Message], input_handler: BaseHandler, output_handler: BaseHandler
 ):
     for msg in printable_messages[:2]:
         output_handler.write_message(msg)

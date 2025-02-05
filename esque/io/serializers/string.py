@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Optional
 
-from esque.io.messages import PrintableMessagePayload
+from esque.io.messages import MessagePayload
 from esque.io.serializers.base import DataSerializer
 
 
@@ -14,10 +14,10 @@ class StringSerializer(DataSerializer):
     def __init__(self, config: StringSerializerConfig):
         self.config = config
 
-    def serialize(self, data: PrintableMessagePayload) -> Optional[str]:
+    def serialize(self, data: MessagePayload) -> Optional[str]:
         return data.payload
 
-    def deserialize(self, raw_data: Optional[bytes]) -> PrintableMessagePayload:
+    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
         if raw_data is None:
-            return PrintableMessagePayload()
-        return PrintableMessagePayload(payload=raw_data.decode(encoding=self.config.encoding, errors="replace"))
+            return MessagePayload()
+        return MessagePayload(payload=raw_data.decode(encoding=self.config.encoding, errors="replace"))

@@ -1,11 +1,11 @@
 from esque.io.exceptions import EsqueIOException
-from esque.io.messages import PrintableMessage
+from esque.io.messages import Message
 
 
 class StreamEvent:
-    message: PrintableMessage = None
+    message: Message = None
 
-    def __init__(self, printable_message: PrintableMessage = None):
+    def __init__(self, printable_message: Message = None):
         self.message = printable_message
 
 

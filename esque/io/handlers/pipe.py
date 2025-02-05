@@ -8,7 +8,7 @@ from rich.console import Console
 from esque.io.exceptions import EsqueIOHandlerReadException
 from esque.io.handlers.base import BaseHandler
 from esque.io.handlers.base_config import BaseHandlerConfig
-from esque.io.messages import MessageHeader, PrintableMessage
+from esque.io.messages import MessageHeader, Message
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent
 
 
@@ -63,7 +63,7 @@ class PipeHandler(BaseHandler):
                 f"Make sure json objects are single-line and not pretty printed. Original Error: {e}"
             )
 
-        return PrintableMessage(
+        return Message(
             key=self.config.read_serializer.key.deserialize(deserialized_object.get("key")),
             value=self.config.read_serializer.value.deserialize(deserialized_object.get("value")),
             offset=deserialized_object.get("offset", -1),
