@@ -26,17 +26,17 @@ class BaseHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_message(self, printable_message: StreamEvent) -> None:
+    def write_message(self, stream_event: StreamEvent) -> None:
         """
         Write the message from `binary_message` to this handler's source.
         The handler may choose which action to take upon receiving any :class:`StreamEvent`
         instances but mostly the appropriate action is to just ignore them.
 
-        :param printable_message: The message that is supposed to be written.
+        :param stream_event: The message that is supposed to be written.
         """
         raise NotImplementedError
 
-    def write_many_messages(self, message_stream: Iterable[Union[PrintableMessage, StreamEvent]]) -> None:
+    def write_many_messages(self, message_stream: Iterable[StreamEvent]) -> None:
         """
         Write all messages from the iterable `message_stream` to this handler's source.
         The handler may choose which action to take upon receiving any :class:`StreamEvent`

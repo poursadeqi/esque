@@ -34,10 +34,10 @@ class DummyHandler(BaseHandler):
     def put_serializer_configs(self, configs: Tuple[Dict[str, Any], Dict[str, Any]]) -> None:
         self._serializer_configs = configs
 
-    def write_message(self, printable_message: Union[WritableMessage, StreamEvent]) -> None:
-        if isinstance(printable_message, StreamEvent):
+    def write_message(self, stream_event: Union[WritableMessage, StreamEvent]) -> None:
+        if isinstance(stream_event, StreamEvent):
             return
-        self._messages.append(printable_message)
+        self._messages.append(stream_event)
 
     def read_message(self) -> Union[WritableMessage, StreamEvent]:
         while True:

@@ -99,18 +99,16 @@ class KafkaHandler(BaseHandler):
     def put_serializer_configs(self, config: Tuple[Dict[str, Any], Dict[str, Any]]) -> None:
         raise EsqueIOSerializerConfigNotSupported
 
-    def write_message(self, printable_message: StreamEvent) -> None:
-        self._produce_single_message(printable_message=printable_message)
+    def write_message(self, stream_event: StreamEvent) -> None:
+        self._produce_single_message(printable_message=stream_event.get_message())
         self._flush()
 
     def write_many_messages(self, message_stream: Iterable[StreamEvent]) -> None:
         for binary_message in message_stream:
-            self._produce_single_message(printable_message=binary_message)
+            self._produce_single_message(printable_message=binary_message.get_message())
         self._flush()
 
     def _produce_single_message(self, printable_message: PrintableMessage) -> None:
-        if isinstance(printable_message, StreamEvent):
-            return
         partition_arg = {}
         partition = self._io_to_confluent_partition(printable_message.partition)
         if partition is not None:

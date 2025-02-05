@@ -69,8 +69,8 @@ class HandlerSerializerMessageWriter(MessageWriter):
     def __init__(self, handler: BaseHandler):
         self._handler = handler
 
-    def write_message(self, message: PrintableMessage):
-        self._handler.write_message(printable_message=message)
+    def write_message(self, stream_event: StreamEvent):
+        self._handler.write_message(stream_event=stream_event)
 
     def write_many_messages(self, message_stream: Iterable[StreamEvent]):
         self._handler.write_many_messages(message_stream=message_stream)
