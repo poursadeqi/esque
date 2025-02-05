@@ -37,7 +37,7 @@ class _Schemes(NamedTuple):
 
 class MessageWriter(ABC):
     @abstractmethod
-    def write_many_messages(self, message_stream: Iterable[Union[PrintableMessage, StreamEvent]]):
+    def write_many_messages(self, message_stream: Iterable[StreamEvent]):
         raise NotImplementedError
 
     @abstractmethod
@@ -72,7 +72,7 @@ class HandlerSerializerMessageWriter(MessageWriter):
     def write_message(self, message: PrintableMessage):
         self._handler.write_message(printable_message=message)
 
-    def write_many_messages(self, message_stream: Iterable[Union[PrintableMessage, StreamEvent]]):
+    def write_many_messages(self, message_stream: Iterable[StreamEvent]):
         self._handler.write_many_messages(message_stream=message_stream)
 
     def close(self):
@@ -107,7 +107,7 @@ class Pipeline:
         with closing(self):
             self._output_element.write_many_messages(self.decorated_message_stream())
 
-    def write_many_messages(self, message_stream: Iterable[Union[PrintableMessage, StreamEvent]]):
+    def write_many_messages(self, message_stream: Iterable[StreamEvent]):
         self._output_element.write_many_messages(message_stream=message_stream)
 
     def close(self) -> None:

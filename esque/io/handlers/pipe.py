@@ -25,30 +25,28 @@ class PipeHandler(BaseHandler):
         self._console = Console(file=config.file)
         self._left_bound = -1
 
-    def write_message(self, message: Union[PrintableMessage, StreamEvent]) -> None:
-        if isinstance(message, StreamEvent):
-            return
+    def write_message(self, event: StreamEvent) -> None:
         self._console.print_json(
             json.dumps(
                 {
-                    "key": message.key.payload,
-                    "value": message.value.payload,
-                    "partition": message.partition,
-                    "offset": message.offset,
-                    "timestamp": message.timestamp.isoformat(),
-                    "headers": [{"key": h.key, "value": h.value} for h in message.headers],
+                    "key": event.get_message().key.payload,
+                    "value": event.get_message().value.payload,
+                    "partition": event.get_message().partition,
+                    "offset": event.get_message().offset,
+                    "timestamp": event.get_message().timestamp.isoformat(),
+                    "headers": [{"key": h.key, "value": h.value} for h in event.get_message().headers],
                 }
             ),
             indent=2 if self.config.pretty_print else None,
         )
 
-    def read_message(self) -> Union[StreamEvent, PrintableMessage]:
+    def read_message(self) -> StreamEvent:
         while True:
             msg = self._next_message()
             if isinstance(msg, StreamEvent) or msg.offset >= self._left_bound:
                 return msg
 
-    def _next_message(self) -> Union[StreamEvent, PrintableMessage]:
+    def _next_message(self) -> StreamEvent:
         line = ""
         while not line.strip():
             line = self.config.file.readline()

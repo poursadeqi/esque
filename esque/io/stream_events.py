@@ -1,8 +1,17 @@
+from esque.io.exceptions import EsqueIOException
 from esque.io.messages import PrintableMessage
 
 
 class StreamEvent:
-    message: PrintableMessage = None
+    __message: PrintableMessage = None
+
+    def __init__(self, message: PrintableMessage = None):
+        self.__message = message
+
+    def get_message(self) -> PrintableMessage:
+        if self.__message is None:
+            raise EsqueIOException("didn't expect get_message to be called when message is none.")
+        return self.__message
 
 
 class StoppableEvent(StreamEvent):
@@ -16,6 +25,7 @@ class StoppableEvent(StreamEvent):
     ALL_PARTITIONS: int = -1
 
     def __init__(self, msg: str, partition: int = ALL_PARTITIONS):
+        super().__init__()
         self._msg = msg
         self.partition = partition
 
@@ -28,13 +38,13 @@ class StoppableEvent(StreamEvent):
         return type(self) is type(other) and self._msg == other._msg and self.partition == other.partition
 
 
-class NthMessageRead(StreamEvent):
+class NthMessageRead(StoppableEvent):
     """
     Stream Event indicating that the desired amount of messages has been read.
     """
 
 
-class EndOfStream(StreamEvent):
+class EndOfStream(StoppableEvent):
     """
     Stream Event indicating that the handler reached a (possibly temporary) end of its message source.
     """
