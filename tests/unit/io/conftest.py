@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from pytest_cases import fixture
 
 from esque.io.handlers.base import BaseHandler
-from esque.io.messages import WritableMessage, MessageHeader, PrintableMessagePayload, PrintableMessage
+from esque.io.messages import MessageHeader, PrintableMessagePayload, PrintableMessage
 from esque.io.pipeline import HandlerSerializerMessageReader, HandlerSerializerMessageWriter, PipelineBuilder
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.string import StringSerializer, StringSerializerConfig
@@ -34,18 +34,18 @@ class DummyHandler(BaseHandler):
     def put_serializer_configs(self, configs: Tuple[Dict[str, Any], Dict[str, Any]]) -> None:
         self._serializer_configs = configs
 
-    def write_message(self, stream_event: Union[WritableMessage, StreamEvent]) -> None:
+    def write_message(self, stream_event: StreamEvent) -> None:
         if isinstance(stream_event, StreamEvent):
             return
         self._messages.append(stream_event)
 
-    def read_message(self) -> Union[WritableMessage, StreamEvent]:
+    def read_message(self) -> StreamEvent:
         while True:
-            msg = self._next_message()
-            if isinstance(msg, StreamEvent) or msg.offset >= self._left_bound:
-                return msg
+            event = self._next_message()
+            if event.message is None or event.message.offset >= self._left_bound:
+                return event
 
-    def _next_message(self) -> Union[StreamEvent, WritableMessage]:
+    def _next_message(self) -> StreamEvent:
         if self._messages:
             elem = self._messages.pop(0)
             if elem is None:
@@ -59,10 +59,10 @@ class DummyHandler(BaseHandler):
             self._peof_counter += 1
             return PermanentEndOfStream("No messages left in memory")
 
-    def get_messages(self) -> List[WritableMessage]:
+    def get_messages(self) -> List[PrintableMessage]:
         return self._messages.copy()
 
-    def set_messages(self, messages: List[WritableMessage]):
+    def set_messages(self, messages: List[PrintableMessage]):
         self._messages = messages.copy()
 
     def insert_temporary_end_of_stream(self, position: int):
@@ -70,7 +70,7 @@ class DummyHandler(BaseHandler):
 
     @classmethod
     def create_default(cls) -> "DummyHandler":
-        return cls(config=DummyHandlerConfig(host="", path="", scheme="dummy"))
+        return cls(config=DummyHandlerConfig())
 
     def seek(self, position: int):
         self._left_bound = position
@@ -87,60 +87,6 @@ def topic_id() -> str:
 @fixture
 def dummy_handler() -> DummyHandler:
     return DummyHandler.create_default()
-
-
-@fixture()
-def binary_messages() -> List[WritableMessage]:
-    return [
-        WritableMessage(
-            key=b"foo1",
-            value=b"bar1",
-            partition=0,
-            offset=0,
-            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=0, tzinfo=datetime.timezone.utc),
-            headers=[MessageHeader("a", "b")],
-        ),
-        WritableMessage(
-            key=b"foo2",
-            value=b"bar2",
-            partition=0,
-            offset=1,
-            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=1, tzinfo=datetime.timezone.utc),
-            headers=[MessageHeader("c", None)],
-        ),
-        WritableMessage(
-            key=b"foo3",
-            value=b"bar3",
-            partition=1,
-            offset=0,
-            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=2, tzinfo=datetime.timezone.utc),
-            headers=[],
-        ),
-        WritableMessage(
-            key=b"foo4",
-            value=b"bar4",
-            partition=1,
-            offset=1,
-            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=3, tzinfo=datetime.timezone.utc),
-            headers=[],
-        ),
-        WritableMessage(
-            key=b"foo5",
-            value=b"bar5",
-            partition=1,
-            offset=2,
-            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=4, tzinfo=datetime.timezone.utc),
-            headers=[],
-        ),
-        WritableMessage(
-            key=b"foo6",
-            value=b"bar6",
-            partition=1,
-            offset=3,
-            timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=5, tzinfo=datetime.timezone.utc),
-            headers=[],
-        ),
-    ]
 
 
 @fixture()
@@ -210,19 +156,19 @@ def partition_count(binary_messages) -> int:
 
 @fixture()
 def string_messages(
-    binary_messages: List[WritableMessage], string_message_serializer: MessageSerializer
+        binary_messages: List[PrintableMessage], string_message_serializer: MessageSerializer
 ) -> List[PrintableMessage]:
     return list(string_message_serializer.deserialize_many(binary_messages))
 
 
 @fixture()
 def string_serializer() -> StringSerializer:
-    return StringSerializer(StringSerializerConfig(scheme="str"))
+    return StringSerializer(StringSerializerConfig())
 
 
 @fixture()
 def string_message_serializer(string_serializer: StringSerializer) -> MessageSerializer:
-    return MessageSerializer(string_serializer)
+    return MessageSerializer(key=string_serializer, value=string_serializer)
 
 
 class DummyMessageReader(HandlerSerializerMessageReader):
@@ -230,11 +176,10 @@ class DummyMessageReader(HandlerSerializerMessageReader):
 
     def __init__(self):
         super().__init__(
-            handler=DummyHandler(config=DummyHandlerConfig(host="", path="", scheme="")),
-            message_serializer=MessageSerializer(StringSerializer(StringSerializerConfig(scheme="str"))),
+            handler=DummyHandler(config=DummyHandlerConfig()),
         )
 
-    def set_messages(self, messages: List[WritableMessage]) -> None:
+    def set_messages(self, messages: List[PrintableMessage]) -> None:
         self._handler.set_messages(messages)
 
 
@@ -248,11 +193,10 @@ class DummyMessageWriter(HandlerSerializerMessageWriter):
 
     def __init__(self):
         super().__init__(
-            handler=DummyHandler(config=DummyHandlerConfig(host="", path="", scheme="")),
-            message_serializer=MessageSerializer(StringSerializer(StringSerializerConfig(scheme="str"))),
+            handler=DummyHandler(config=DummyHandlerConfig()),
         )
 
-    def get_written_messages(self) -> List[WritableMessage]:
+    def get_written_messages(self) -> List[PrintableMessage]:
         return self._handler.get_messages()
 
 
@@ -263,9 +207,9 @@ def dummy_message_writer() -> DummyMessageWriter:
 
 @fixture
 def prepared_builder(
-    dummy_message_reader: DummyMessageReader,
-    dummy_message_writer: DummyMessageWriter,
-    binary_messages: List[WritableMessage],
+        dummy_message_reader: DummyMessageReader,
+        dummy_message_writer: DummyMessageWriter,
+        binary_messages: List[PrintableMessage],
 ) -> PipelineBuilder:
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)

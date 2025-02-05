@@ -3,7 +3,7 @@ from typing import Callable, Dict, Iterable, Iterator, Tuple, TypeVar, Union
 
 import more_itertools
 
-from esque.io.stream_events import EndOfStream, NthMessageRead, StreamEvent
+from esque.io.stream_events import EndOfStream, NthMessageRead, StreamEvent, StoppableEvent
 from esque.ruleparser.ruleengine import RuleTree
 
 
@@ -102,7 +102,7 @@ def yield_messages_sorted_by_timestamp(partition_count: int) -> Callable[
         partition_buffers: Dict[int, Iterator[StreamEvent]] = {
             p: more_itertools.peekable(iter(bucketed_stream[p])) for p in range(partition_count)
         }
-        global_event_buffer = bucketed_stream[StreamEvent.ALL_PARTITIONS]
+        global_event_buffer = bucketed_stream[StoppableEvent.ALL_PARTITIONS]
         return partition_buffers, global_event_buffer
 
     def sorted_message_stream(partition_buffers):
