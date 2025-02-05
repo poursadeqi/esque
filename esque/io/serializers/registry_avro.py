@@ -135,7 +135,6 @@ class RestSchemaRegistryClient(SchemaRegistryClient):
 SCHEMA_REGISTRY_CLIENT_SCHEME_MAP["http"] = RestSchemaRegistryClient
 SCHEMA_REGISTRY_CLIENT_SCHEME_MAP["https"] = RestSchemaRegistryClient
 
-
 # hash to schema id
 IndexData = Dict[str, int]
 
@@ -233,10 +232,11 @@ class RegistryAvroSerializerConfig:
 
 
 class RegistryAvroSerializer(DataSerializer):
-    config_cls = RegistryAvroSerializerConfig
+    config = RegistryAvroSerializerConfig
 
     def __init__(self, config: RegistryAvroSerializerConfig):
-        super().__init__(config)
+        super().__init__()
+        self.config = config
         self._registry_client = SchemaRegistryClient.from_config(config)
 
     def serialize(self, data: PrintableMessagePayload) -> Optional[bytes]:
@@ -254,7 +254,7 @@ class RegistryAvroSerializer(DataSerializer):
             schema_id = get_schema_id_from_prefix(fake_stream.read(5))
             avro_type = self._registry_client.get_avro_type_by_id(schema_id)
             record = fastavro.schemaless_reader(fake_stream, avro_type.fastavro_schema)
-            return PrintableMessagePayload(payload=record, data_type=avro_type)
+            return PrintableMessagePayload(payload=record)
 
 
 @dataclasses.dataclass
