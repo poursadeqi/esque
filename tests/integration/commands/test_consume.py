@@ -12,6 +12,7 @@ from esque import config
 from esque.cli.commands import esque
 from esque.controller.consumergroup_controller import ConsumerGroupController
 from esque.errors import ConsumerGroupDoesNotExistException
+from esque.io.exceptions import EsqueIOHandlerReadException
 from tests.utils import produce_avro_test_messages, produce_binary_test_messages
 
 
@@ -49,7 +50,13 @@ def test_offset_not_committed(
     produce_avro_test_messages(avro_producer, topic_name=source_topic_id)
 
     non_interactive_cli_runner.invoke(
-        esque, args=["consume", "--stdout", "--numbers", "10", "--avro", source_topic_id], catch_exceptions=False
+        esque, args=[
+            "stream",
+            "--input-topic", source_topic_id,
+            "--number", "10",
+            "--input-value-deserializer", "avro",
+            "--input-key-deserializer", "avro"
+        ], catch_exceptions=False
     )
 
     # cannot use pytest.raises(ConsumerGroupDoesNotExistException) because other tests may have committed offsets
@@ -69,7 +76,13 @@ def test_binary_consume_to_stdout(
     expected_messages = produce_binary_test_messages(producer, topic_name=source_topic_id)
 
     message_text = non_interactive_cli_runner.invoke(
-        esque, args=["consume", "--stdout", "--number", "10", "--binary", source_topic_id], catch_exceptions=False
+        esque, args=[
+            "stream",
+            "--input-topic", source_topic_id,
+            "--number", "10",
+            "--input-value-deserializer", "binary",
+            "--input-key-deserializer", "binary"
+        ], catch_exceptions=False
     )
     # Check assertions:
     actual_messages = {
@@ -82,7 +95,13 @@ def test_binary_consume_to_stdout(
 
 @pytest.mark.integration
 def test_binary_and_avro_fails(non_interactive_cli_runner: CliRunner):
-    with pytest.raises(ValueError):
-        non_interactive_cli_runner.invoke(
-            esque, args=["consume", "--binary", "--avro", "thetopic"], catch_exceptions=False
+    with pytest.raises(EsqueIOHandlerReadException):
+         non_interactive_cli_runner.invoke(
+            esque, args=[
+                "stream",
+                "--input-topic", "thetopic",
+                "--number", "10",
+                "--input-value-deserializer", "binary",
+                "--input-key-deserializer", "binary"
+            ], catch_exceptions=False
         )

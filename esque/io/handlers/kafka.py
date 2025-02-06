@@ -213,7 +213,7 @@ class KafkaHandler(BaseHandler):
 
         return io_headers
 
-    def message_stream(self) -> StreamEvent:
+    def message_stream(self) -> Iterable[StreamEvent]:
         while True:
             yield self.read_message()
 

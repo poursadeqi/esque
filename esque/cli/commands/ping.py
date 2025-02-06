@@ -10,8 +10,8 @@ from esque.cli.helpers import ensure_approval
 from esque.cli.options import State, default_options
 from esque.config import PING_TOPIC
 from esque.io.handlers.kafka import KafkaHandlerConfig, KafkaHandler
-from esque.io.messages import Message
-from esque.io.stream_decorators import skip_stream_events
+from esque.io.messages import Message, MessagePayload
+from esque.io.stream_events import StreamEvent
 from esque.resources.topic import Topic
 
 
@@ -51,10 +51,10 @@ def ping(state: State, times: int, wait: int):
 
     click.echo("Initializing producer.")
     output_handler = KafkaHandler(KafkaHandlerConfig(context=state.config.current_context, topic=PING_TOPIC))
-    output_handler.write_message(create_tombstone_message(ping_id))
+    output_handler.write_message(create_tombstone_stream_event(ping_id))
 
     input_handler = KafkaHandler(KafkaHandlerConfig(context=state.config.current_context, topic=PING_TOPIC))
-    input_stream = filter(key_matches(ping_id), skip_stream_events(input_handler.message_stream()))
+    input_stream = filter(key_matches(ping_id), input_handler.message_stream())
     message_iterator = iter(input_stream)
 
     click.echo("Initializing consumer.")
@@ -65,7 +65,7 @@ def ping(state: State, times: int, wait: int):
     deltas = []
     try:
         for i in range(times):
-            output_handler.write_message(create_ping_message(ping_id))
+            output_handler.write_message(create_ping_stream_event(ping_id))
             msg_recieved = next(message_iterator)
 
             dt_created = dt_from_bytes(msg_recieved.value)
@@ -86,7 +86,7 @@ def ping(state: State, times: int, wait: int):
         return
 
     # make sure our ping messages get cleaned up
-    output_handler.write_message(create_tombstone_message(ping_id))
+    output_handler.write_message(create_tombstone_stream_event(ping_id))
 
     click.echo("--- statistics ---")
     click.echo(f"{len(deltas)} messages sent/received.")
@@ -96,27 +96,36 @@ def ping(state: State, times: int, wait: int):
     click.echo(f"c2c {stats(c2c_times)}")
 
 
-def key_matches(ping_id: bytes) -> Callable[[Message], bool]:
-    def matcher(msg: Message) -> bool:
-        return msg.key == ping_id
-
-    return matcher
+def key_matches(ping_id: bytes) -> Callable[[StreamEvent], bool]:
+    return lambda event: hasattr(event, "message") and event.message.key == ping_id
 
 
 def stats(deltas: List[int]) -> str:
     return f"min/avg/max = {min(deltas):.2f}/{(sum(deltas) / len(deltas)):.2f}/{max(deltas):.2f} ms"
 
 
-def create_ping_message(ping_id) -> Message:
+def create_ping_stream_event(ping_id) -> StreamEvent:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
-    return Message(
-        key=ping_id, value=dt_to_bytes(create_time), partition=-1, offset=-1, timestamp=create_time, headers=[]
+    return StreamEvent(Message(
+        key=ping_id,
+        value=MessagePayload(dt_to_bytes(create_time)),
+        partition=-1,
+        offset=-1,
+        timestamp=create_time,
+        headers=[])
     )
 
 
-def create_tombstone_message(ping_id) -> Message:
+def create_tombstone_stream_event(ping_id) -> StreamEvent:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
-    return Message(key=ping_id, value=None, partition=-1, offset=-1, timestamp=create_time, headers=[])
+    return StreamEvent(
+        Message(
+            key=ping_id,
+            value=MessagePayload(None),
+            partition=-1,
+            offset=-1,
+            timestamp=create_time, headers=[])
+    )
 
 
 def dt_to_bytes(dt: datetime.datetime) -> bytes:
