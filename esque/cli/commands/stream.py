@@ -3,13 +3,12 @@ from dataclasses import dataclass
 from typing import Optional
 
 import click
-from click.shell_completion import shell_complete
 
 from esque.cli.autocomplete import list_consumergroups, list_contexts, list_topics
 from esque.cli.options import State, default_options
 from esque.cluster import Cluster
 from esque.config import ESQUE_GROUP_ID
-from esque.io.handlers.kafka import KafkaHandlerConfig, KafkaHandler
+from esque.io.handlers.kafka import KafkaHandler, KafkaHandlerConfig
 from esque.io.handlers.pipe import PipeHandler, PipeHandlerConfig
 from esque.io.pipeline import PipelineBuilder
 from esque.io.serializers import BinarySerializer, JsonSerializer, RegistryAvroSerializer, StringSerializer
@@ -96,9 +95,7 @@ class ConsumeOptions:
     default="stdout",
 )
 @click.option(
-    "-n", "--number",
-    metavar="<n>",
-    help="Number of messages.", type=click.INT, default=None, required=False
+    "-n", "--number", metavar="<n>", help="Number of messages.", type=click.INT, default=None, required=False
 )
 @click.option(
     "-m",
@@ -108,9 +105,13 @@ class ConsumeOptions:
     type=click.STRING,
     required=False,
 )
-@click.option("--last/--first",
-              help="Start consuming from the earliest or latest offset in the topic.""Latest means at the end of the topic _not including_ the last message(s),""so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
-              default=False)
+@click.option(
+    "--last/--first",
+    help="Start consuming from the earliest or latest offset in the topic."
+    "Latest means at the end of the topic _not including_ the last message(s),"
+    "so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
+    default=False,
+)
 @click.option("--input-key-struct-format", help="Set this flag to set encoding for key", type=str)
 @click.option("--input-value-struct-format", help="Set this flag to set output encoding for value.", type=str)
 @click.option("--output-key-struct-format", help="Set this flag to set encoding for key", type=str)
@@ -153,8 +154,8 @@ class ConsumeOptions:
 @click.option(
     "--preserve-order",
     help="Preserve the order of messages, regardless of their partition. "
-         "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
-         "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
+    "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
+    "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
     default=False,
     is_flag=True,
 )
@@ -162,7 +163,7 @@ class ConsumeOptions:
     "-p",
     "--pretty-print",
     help="Use multiple lines to represent each kafka message instead of putting every JSON object into a single "
-         "line. Only has an effect when consuming to stdout.",
+    "line. Only has an effect when consuming to stdout.",
     default=False,
     is_flag=True,
 )
@@ -207,7 +208,7 @@ def stream(state: State, **kwargs):
         consumer_options.input_key_struct_format,
         consumer_options.input_value_deserializer,
         consumer_options.input_value_struct_format,
-        consumer_options
+        consumer_options,
     )
 
     output_serializer = create_key_value_serializer(
@@ -216,7 +217,7 @@ def stream(state: State, **kwargs):
         consumer_options.output_key_struct_format,
         consumer_options.output_value_serializer,
         consumer_options.output_value_struct_format,
-        consumer_options
+        consumer_options,
     )
 
     builder = PipelineBuilder()
@@ -248,22 +249,25 @@ def stream(state: State, **kwargs):
 
 def create_input_handler(read_serializer: MessageSerializer, consumer_options: ConsumeOptions):
     consumer_group = consumer_options.consumer_group
-    if not consumer_group: consumer_group = ESQUE_GROUP_ID
-    return KafkaHandler(KafkaHandlerConfig(
-        read_serializer=read_serializer,
-        context=consumer_options.input_ctx,
-        topic=consumer_options.input_topic,
-        consumer_group_id=consumer_group)
+    if not consumer_group:
+        consumer_group = ESQUE_GROUP_ID
+    return KafkaHandler(
+        KafkaHandlerConfig(
+            read_serializer=read_serializer,
+            context=consumer_options.input_ctx,
+            topic=consumer_options.input_topic,
+            consumer_group_id=consumer_group,
+        )
     )
 
 
 def create_key_value_serializer(
-        state: State,
-        key_deserializer: str,
-        key_struct_format: str,
-        val_deserializer: str,
-        val_struct_format: str,
-        consumer_options: ConsumeOptions
+    state: State,
+    key_deserializer: str,
+    key_struct_format: str,
+    val_deserializer: str,
+    val_struct_format: str,
+    consumer_options: ConsumeOptions,
 ) -> MessageSerializer:
     key_serializer = create_serializer(state, key_deserializer, key_struct_format, consumer_options)
     val_serializer = create_serializer(state, val_deserializer, val_struct_format, consumer_options)
@@ -272,20 +276,14 @@ def create_key_value_serializer(
 
 
 def create_output_handler(serializer: MessageSerializer, consumer_options: ConsumeOptions):
-    return PipeHandler(
-        PipeHandlerConfig(
-            file=sys.stdout,
-            pretty_print=consumer_options.pretty_print)
-    )
+    return PipeHandler(PipeHandlerConfig(file=sys.stdout, pretty_print=consumer_options.pretty_print))
 
 
 def create_serializer(state: State, serializer: str, struct_format: str, consumer_options: ConsumeOptions):
     if serializer == "json":
         return JsonSerializer(JsonSerializerConfig())
     elif serializer == "avro":
-        return RegistryAvroSerializer(
-            RegistryAvroSerializerConfig(schema_registry_uri=state.config.schema_registry)
-        )
+        return RegistryAvroSerializer(RegistryAvroSerializerConfig(schema_registry_uri=state.config.schema_registry))
     elif serializer == "str":
         serializer = StringSerializer(StringSerializerConfig())
     elif serializer == "proto" and consumer_options.input_topic not in state.config.proto:

@@ -11,6 +11,7 @@ class MessageHeader(NamedTuple):
 
 PrimaryTypes = Union[dict, list, tuple, str, int, float, bool, bytes, None]
 
+
 @dataclasses.dataclass
 class MessagePayload:
     payload: PrimaryTypes = None
@@ -25,6 +26,7 @@ class MessagePayload:
         if self.is_printable():
             return repr(self.payload)
         return base64.b64encode(self.payload).decode("utf-8")
+
 
 def now_utc() -> datetime.datetime:
     return datetime.datetime.now(tz=datetime.timezone.utc)

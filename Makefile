@@ -17,6 +17,7 @@ clean:
 
 format: clean
 	@poetry run black esque/ tests/
+	@poetry run pre-commit run --all-files
 
 # test your application (tests in the tests/ directory)
 test-suite:

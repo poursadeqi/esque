@@ -9,7 +9,7 @@ import click
 from esque.cli.helpers import ensure_approval
 from esque.cli.options import State, default_options
 from esque.config import PING_TOPIC
-from esque.io.handlers.kafka import KafkaHandlerConfig, KafkaHandler
+from esque.io.handlers.kafka import KafkaHandler, KafkaHandlerConfig
 from esque.io.messages import Message, MessagePayload
 from esque.io.stream_events import StreamEvent
 from esque.resources.topic import Topic
@@ -35,7 +35,7 @@ def ping(state: State, times: int, wait: int):
 
     if not topic_controller.topic_exists(PING_TOPIC):
         if ensure_approval(
-                f"Topic {PING_TOPIC!r} does not exist, do you want to create it?", no_verify=state.no_verify
+            f"Topic {PING_TOPIC!r} does not exist, do you want to create it?", no_verify=state.no_verify
         ):
             topic_config = {
                 "cleanup.policy": "compact,delete",
@@ -106,25 +106,22 @@ def stats(deltas: List[int]) -> str:
 
 def create_ping_stream_event(ping_id) -> StreamEvent:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
-    return StreamEvent(Message(
-        key=ping_id,
-        value=MessagePayload(dt_to_bytes(create_time)),
-        partition=-1,
-        offset=-1,
-        timestamp=create_time,
-        headers=[])
+    return StreamEvent(
+        Message(
+            key=ping_id,
+            value=MessagePayload(dt_to_bytes(create_time)),
+            partition=-1,
+            offset=-1,
+            timestamp=create_time,
+            headers=[],
+        )
     )
 
 
 def create_tombstone_stream_event(ping_id) -> StreamEvent:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
     return StreamEvent(
-        Message(
-            key=ping_id,
-            value=MessagePayload(None),
-            partition=-1,
-            offset=-1,
-            timestamp=create_time, headers=[])
+        Message(key=ping_id, value=MessagePayload(None), partition=-1, offset=-1, timestamp=create_time, headers=[])
     )
 
 

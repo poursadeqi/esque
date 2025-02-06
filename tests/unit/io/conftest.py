@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from pytest_cases import fixture
 
 from esque.io.handlers.base import BaseHandler
-from esque.io.messages import MessageHeader, MessagePayload, Message
+from esque.io.messages import Message, MessageHeader, MessagePayload
 from esque.io.pipeline import HandlerSerializerMessageReader, HandlerSerializerMessageWriter, PipelineBuilder
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.string import StringSerializer, StringSerializerConfig
@@ -155,9 +155,7 @@ def partition_count(binary_messages) -> int:
 
 
 @fixture()
-def string_messages(
-        binary_messages: List[Message], string_message_serializer: MessageSerializer
-) -> List[Message]:
+def string_messages(binary_messages: List[Message], string_message_serializer: MessageSerializer) -> List[Message]:
     return list(string_message_serializer.deserialize_many(binary_messages))
 
 
@@ -207,9 +205,9 @@ def dummy_message_writer() -> DummyMessageWriter:
 
 @fixture
 def prepared_builder(
-        dummy_message_reader: DummyMessageReader,
-        dummy_message_writer: DummyMessageWriter,
-        binary_messages: List[Message],
+    dummy_message_reader: DummyMessageReader,
+    dummy_message_writer: DummyMessageWriter,
+    binary_messages: List[Message],
 ) -> PipelineBuilder:
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)

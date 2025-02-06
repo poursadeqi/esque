@@ -6,7 +6,7 @@ from esque.cli.options import State, default_options
 from esque.cli.output import blue_bold, green_bold
 from esque.cluster import Cluster
 from esque.config import ESQUE_GROUP_ID
-from esque.io.handlers.kafka import KafkaHandlerConfig, KafkaHandler
+from esque.io.handlers.kafka import KafkaHandler, KafkaHandlerConfig
 from esque.io.pipeline import PipelineBuilder
 from esque.io.serializers import BinarySerializer, RegistryAvroSerializer, StringSerializer
 from esque.io.serializers.base import MessageSerializer
@@ -69,8 +69,8 @@ from esque.resources.topic import Topic
 @click.option(
     "--last/--first",
     help="Start consuming from the earliest or latest offset in the topic."
-         "Latest means at the end of the topic _not including_ the last message(s),"
-         "so if no new data is coming in nothing will be consumed.",
+    "Latest means at the end of the topic _not including_ the last message(s),"
+    "so if no new data is coming in nothing will be consumed.",
     default=False,
 )
 @click.option(
@@ -84,7 +84,7 @@ from esque.resources.topic import Topic
     "-b",
     "--binary",
     help="Set this flag if the topic contains binary data. Or the data should not be (de-)serialized. "
-         "This flag is mutually exclusive with the --avro flag",
+    "This flag is mutually exclusive with the --avro flag",
     default=False,
     is_flag=True,
 )
@@ -100,17 +100,17 @@ from esque.resources.topic import Topic
 )
 @default_options
 def transfer(
-        state: State,
-        from_topic: str,
-        to_topic: str,
-        from_context: str,
-        to_context: str,
-        number: int,
-        last: bool,
-        avro: bool,
-        binary: bool,
-        consumergroup: str,
-        match: str = None,
+    state: State,
+    from_topic: str,
+    to_topic: str,
+    from_context: str,
+    to_context: str,
+    number: int,
+    last: bool,
+    avro: bool,
+    binary: bool,
+    consumergroup: str,
+    match: str = None,
 ):
     """Transfer messages between two topics.
 

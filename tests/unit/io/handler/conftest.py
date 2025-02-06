@@ -4,7 +4,7 @@ from typing import Callable
 
 from pytest_cases import fixture
 
-from esque.io.handlers.pipe import PipeHandlerConfig, PipeHandler
+from esque.io.handlers.pipe import PipeHandler, PipeHandlerConfig
 
 
 @fixture

@@ -5,7 +5,6 @@ from esque import __version__
 from esque.cli import environment
 from esque.cli.commands.apply import apply
 from esque.cli.commands.config import config
-from esque.cli.commands.stream import stream
 from esque.cli.commands.create import create
 from esque.cli.commands.ctx import ctx
 from esque.cli.commands.delete import delete
@@ -14,6 +13,7 @@ from esque.cli.commands.edit import edit
 from esque.cli.commands.get import get
 from esque.cli.commands.ping import ping
 from esque.cli.commands.set_ import set_
+from esque.cli.commands.stream import stream
 from esque.cli.commands.transfer import transfer
 from esque.cli.commands.urlencode import urlencode
 from esque.cli.options import State, default_options

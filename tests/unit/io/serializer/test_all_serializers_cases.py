@@ -19,9 +19,7 @@ def case_raw_serializer() -> DataSerializer:
 
 
 def case_registry_avro_serializer() -> DataSerializer:
-    return RegistryAvroSerializer(
-        RegistryAvroSerializerConfig(schema_registry_uri="memory://foobar")
-    )
+    return RegistryAvroSerializer(RegistryAvroSerializerConfig(schema_registry_uri="memory://foobar"))
 
 
 def case_string_serializer() -> DataSerializer:

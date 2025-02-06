@@ -1,6 +1,6 @@
 from typing import List
 
-from esque.io.messages import  Message
+from esque.io.messages import Message
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.string import StringSerializer
 

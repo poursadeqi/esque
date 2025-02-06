@@ -5,7 +5,7 @@ import time
 from concurrent.futures import Future
 from pathlib import Path
 from string import ascii_letters
-from typing import Callable, Dict, Iterable, Tuple, Any, Generator
+from typing import Any, Callable, Dict, Generator, Iterable, Tuple
 from unittest import mock
 
 import confluent_kafka

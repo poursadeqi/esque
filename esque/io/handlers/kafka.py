@@ -1,6 +1,6 @@
 import dataclasses
 import datetime
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from confluent_kafka import OFFSET_BEGINNING, OFFSET_END, Consumer, KafkaError, Message, Producer, TopicPartition
 from confluent_kafka.admin import TopicMetadata
@@ -14,7 +14,7 @@ from esque.io.exceptions import (
 )
 from esque.io.handlers.base import BaseHandler
 from esque.io.handlers.base_config import BaseHandlerConfig
-from esque.io.messages import MessageHeader, Message
+from esque.io.messages import Message, MessageHeader
 from esque.io.stream_events import EndOfStream, StreamEvent, TemporaryEndOfPartition
 
 
@@ -100,25 +100,25 @@ class KafkaHandler(BaseHandler):
         raise EsqueIOSerializerConfigNotSupported
 
     def write_message(self, stream_event: StreamEvent) -> None:
-        self._produce_single_message(printable_message=stream_event.get_message())
+        self._produce_single_message(message=stream_event.message)
         self._flush()
 
     def write_many_messages(self, message_stream: Iterable[StreamEvent]) -> None:
         for event in message_stream:
-            self._produce_single_message(printable_message=event.get_message())
+            self._produce_single_message(message=event.message)
         self._flush()
 
-    def _produce_single_message(self, printable_message: Message) -> None:
+    def _produce_single_message(self, message: Message) -> None:
         partition_arg = {}
-        partition = self._io_to_confluent_partition(printable_message.partition)
+        partition = self._io_to_confluent_partition(message.partition)
         if partition is not None:
             partition_arg["partition"] = partition
         self._get_producer().produce(
             topic=self.config.topic_name,
-            value=self.config.write_serializer.value.serialize(printable_message.value),
-            key=self.config.write_serializer.key.serialize(printable_message.key),
-            headers=self._io_to_confluent_headers(printable_message.headers),
-            timestamp=self._io_to_confluent_timestamp(printable_message.timestamp),
+            value=self.config.write_serializer.value.serialize(message.value),
+            key=self.config.write_serializer.key.serialize(message.key),
+            headers=self._io_to_confluent_headers(message.headers),
+            timestamp=self._io_to_confluent_timestamp(message.timestamp),
             on_delivery=self._delivery_callback,
             **partition_arg,
         )
@@ -190,7 +190,8 @@ class KafkaHandler(BaseHandler):
                 offset=consumed_message.offset(),
                 timestamp=self._confluent_to_io_timestamp(consumed_message),
                 headers=self._confluent_to_io_headers(consumed_message.headers()),
-            ))
+            )
+        )
 
     @staticmethod
     def _confluent_to_io_timestamp(consumed_message: Message) -> datetime.datetime:
@@ -198,7 +199,7 @@ class KafkaHandler(BaseHandler):
 
     @staticmethod
     def _confluent_to_io_headers(
-            confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]],
+        confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]],
     ) -> List[MessageHeader]:
         io_headers: List[MessageHeader] = []
 

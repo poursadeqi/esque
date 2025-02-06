@@ -4,7 +4,7 @@ from typing import List
 from pytest_cases import parametrize_with_cases
 
 from esque.io.handlers.base import BaseHandler
-from esque.io.messages import  Message
+from esque.io.messages import Message
 from esque.io.stream_decorators import skip_stream_events, stop_at_temporary_end_of_all_stream_partitions
 from esque.io.stream_events import StreamEvent, TemporaryEndOfPartition
 
@@ -30,17 +30,13 @@ def test_write_read_message(
 
 
 @parametrize_with_cases("input_handler, output_handler")
-def test_write_read_many_messages(
-    binary_messages: List[Message], input_handler: BaseHandler, output_handler: BaseHandler
-):
+def test_write_read_many_messages(messages: List[Message], input_handler: BaseHandler, output_handler: BaseHandler):
     output_handler.write_many_messages(messages)
     output_handler.close()
-    actual_messages = list(
-        skip_stream_events(stop_at_temporary_end_of_all_stream_partitions(input_handler.stream()))
-    )
+    actual_messages = list(skip_stream_events(stop_at_temporary_end_of_all_stream_partitions(input_handler.stream())))
     actual_messages.sort(key=attrgetter("timestamp"))
     input_handler.close()
-    assert binary_messages == actual_messages
+    assert messages == actual_messages
 
 
 @parametrize_with_cases("_, output_handler")

@@ -1,4 +1,4 @@
-from base64 import b64encode, b64decode
+from base64 import b64decode, b64encode
 from typing import Optional
 
 from esque.io.messages import MessagePayload

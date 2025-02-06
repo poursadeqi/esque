@@ -1,16 +1,13 @@
 import enum
 import functools
-import sys
 from abc import ABC, abstractmethod
 from contextlib import closing
 from typing import Callable, Iterable, List, NamedTuple, Optional, Union
 
 from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState
 from esque.io.handlers.base import BaseHandler
-from esque.io.handlers.pipe import PipeHandlerConfig, PipeHandler
 from esque.io.messages import Message
 from esque.io.serializers.base import MessageSerializer
-from esque.io.serializers.string import StringSerializerConfig
 from esque.io.stream_decorators import stop_after_nth_message
 from esque.io.stream_events import StreamEvent
 
@@ -85,10 +82,10 @@ class Pipeline:
     _stream_decorators: List[Callable[[Iterable], Iterable]]
 
     def __init__(
-            self,
-            input_element: MessageReader,
-            output_element: MessageWriter,
-            stream_decorators: List[Callable[[Iterable], Iterable]],
+        self,
+        input_element: MessageReader,
+        output_element: MessageWriter,
+        stream_decorators: List[Callable[[Iterable], Iterable]],
     ):
         self._input_element = input_element
         self._output_element = output_element
@@ -125,7 +122,7 @@ class _BuilderComponentState(enum.Flag):
         return self in {
             _BuilderComponentState.NOTHING_DEFINED,
             _BuilderComponentState.READER_WRITER_DEFINED,
-            _BuilderComponentState.HANDLER_DEFINED
+            _BuilderComponentState.HANDLER_DEFINED,
         }
 
 

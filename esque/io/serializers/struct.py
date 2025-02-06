@@ -1,5 +1,5 @@
 import dataclasses
-from struct import unpack, pack
+from struct import pack, unpack
 from typing import Optional
 
 from esque.io.messages import MessagePayload

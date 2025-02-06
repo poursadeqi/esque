@@ -8,7 +8,7 @@ from rich.console import Console
 from esque.io.exceptions import EsqueIOHandlerReadException
 from esque.io.handlers.base import BaseHandler
 from esque.io.handlers.base_config import BaseHandlerConfig
-from esque.io.messages import MessageHeader, Message
+from esque.io.messages import Message, MessageHeader
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent
 
 

@@ -8,7 +8,7 @@ from tests.unit.io.conftest import DummyMessageWriter
 
 
 def test_pipeline_without_special_decorators_runs_successfully(
-        dummy_message_writer: DummyMessageWriter, binary_messages: List[Message], prepared_builder: PipelineBuilder
+    dummy_message_writer: DummyMessageWriter, binary_messages: List[Message], prepared_builder: PipelineBuilder
 ):
     pipeline = prepared_builder.build()
 
@@ -18,7 +18,7 @@ def test_pipeline_without_special_decorators_runs_successfully(
 
 
 def test_limited_read_with_absolute_offset(
-        dummy_message_writer: DummyMessageWriter, binary_messages: List[Message], prepared_builder: PipelineBuilder
+    dummy_message_writer: DummyMessageWriter, binary_messages: List[Message], prepared_builder: PipelineBuilder
 ):
     prepared_builder.with_range(start=1, limit=1)
     pipeline = prepared_builder.build()
@@ -31,7 +31,7 @@ def test_limited_read_with_absolute_offset(
 
 @pytest.mark.xfail(reason="Not yet implemented")
 def test_limited_read_with_relative_offset_from_end(
-        dummy_message_writer: DummyMessageWriter, binary_messages: List[Message], prepared_builder: PipelineBuilder
+    dummy_message_writer: DummyMessageWriter, binary_messages: List[Message], prepared_builder: PipelineBuilder
 ):
     prepared_builder.with_range(start=-2, limit=1)
     pipeline = prepared_builder.build()

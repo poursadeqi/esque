@@ -9,7 +9,7 @@ from esque.io.serializers.binary import BinarySerializer
 
 @fixture
 def serializer() -> BinarySerializer:
-    return BinarySerializer(BinarySerializerConfig(scheme="raw"))
+    return BinarySerializer()
 
 
 @fixture
@@ -19,8 +19,7 @@ def many_expected_bytes() -> List[bytes]:
 
 @fixture
 def many_expected_data(many_expected_bytes: List[bytes]) -> List[MessagePayload]:
-    unknown_dtype = UnknownDataType()
-    return [MessagePayload(payload=expected_bytes, data_type=unknown_dtype) for expected_bytes in many_expected_bytes]
+    return [MessagePayload(payload=expected_bytes) for expected_bytes in many_expected_bytes]
 
 
 def test_raw_serialize(serializer: BinarySerializer, many_expected_bytes, many_expected_data):
@@ -35,7 +34,7 @@ def test_raw_deserialize(serializer: BinarySerializer, many_expected_bytes, many
 
 def test_raw_serialize_raises_on_non_bytes(serializer):
     with pytest.raises(TypeError):
-        serializer.serialize(MessagePayload(payload=1, data_type=UnknownDataType()))
+        serializer.serialize(MessagePayload(payload=1))
 
 
 def test_raw_serialize_many(serializer: BinarySerializer, many_expected_bytes, many_expected_data):
