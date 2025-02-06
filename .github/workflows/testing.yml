@@ -58,7 +58,7 @@ jobs:
           poetry install -vvv
       - name: Run kafka stack
         run: |
-          docker-compose up -d
+          docker compose up -d
           ./scripts/wait-for-it.sh localhost:9092 -t 60
           ./scripts/wait-for-it.sh localhost:2181 -t 60
           ./scripts/wait-for-it.sh localhost:8081 -t 60
@@ -76,5 +76,5 @@ jobs:
       - name: Output logs
         if: failure()
         run: |
-          docker-compose logs kafka
-          docker-compose logs zookeeper
+          docker compose logs kafka
+          docker compose logs zookeeper
