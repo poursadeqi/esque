@@ -5,13 +5,14 @@ import time
 from concurrent.futures import Future
 from pathlib import Path
 from string import ascii_letters
-from typing import Callable, Dict, Iterable, Tuple
+from typing import Callable, Dict, Iterable, Tuple, Any, Generator
 from unittest import mock
 
 import confluent_kafka
 import pytest
 import yaml
 from _pytest.fixtures import FixtureRequest
+from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient, NewTopic
 from confluent_kafka.avro import AvroProducer
 from confluent_kafka.cimpl import KafkaError, KafkaException
@@ -231,13 +232,13 @@ def confluent_admin_client(unittest_config) -> AdminClient:
 
 
 @fixture()
-def producer(unittest_config) -> ConfluentProducer:
+def producer(unittest_config) -> Generator[Producer, Any, None]:
     producer_config = unittest_config.create_confluent_config()
     yield ConfluentProducer(producer_config)
 
 
 @fixture()
-def avro_producer(unittest_config) -> AvroProducer:
+def avro_producer(unittest_config) -> Generator[AvroProducer, Any, None]:
     producer_config = unittest_config.create_confluent_config(include_schema_registry=True)
     yield AvroProducer(producer_config)
 

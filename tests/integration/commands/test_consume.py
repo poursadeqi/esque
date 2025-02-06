@@ -17,28 +17,33 @@ from tests.utils import produce_avro_test_messages, produce_binary_test_messages
 
 @pytest.mark.integration
 def test_avro_consume_to_stdout(
-    avro_producer: AvroProducer, source_topic: Tuple[str, int], non_interactive_cli_runner: CliRunner
+        avro_producer: AvroProducer, source_topic: Tuple[str, int], non_interactive_cli_runner: CliRunner
 ):
     source_topic_id, _ = source_topic
     expected_messages = produce_avro_test_messages(avro_producer, topic_name=source_topic_id, amount=10)
-
     message_text = non_interactive_cli_runner.invoke(
-        esque, args=["consume", "--stdout", "--number", "10", "--avro", source_topic_id], catch_exceptions=False
+        esque, args=[
+            "stream",
+            "--input-topic", source_topic_id,
+            "--number", "10",
+            "--input-value-deserializer", "avro",
+            "--input-key-deserializer", "avro"
+        ], catch_exceptions=False
     )
     # Check assertions:
     actual_messages = sorted(map(json.loads, message_text.output.split("\n")[:10]), key=itemgetter("partition"))
     expected_messages.sort(key=attrgetter("partition"))
     for expected_message, actual_message in zip(expected_messages, actual_messages):
-        assert expected_message.key["key"] == json.loads(actual_message["key"])["key"]
-        assert expected_message.value["value"] == json.loads(actual_message["value"])["value"]
+        assert expected_message.key["key"] == actual_message["key"]["key"]
+        assert expected_message.value["value"] == actual_message["value"]["value"]
 
 
 @pytest.mark.integration
 def test_offset_not_committed(
-    avro_producer: AvroProducer,
-    source_topic: Tuple[str, int],
-    non_interactive_cli_runner: CliRunner,
-    consumergroup_controller: ConsumerGroupController,
+        avro_producer: AvroProducer,
+        source_topic: Tuple[str, int],
+        non_interactive_cli_runner: CliRunner,
+        consumergroup_controller: ConsumerGroupController,
 ):
     source_topic_id, _ = source_topic
     produce_avro_test_messages(avro_producer, topic_name=source_topic_id)
@@ -58,7 +63,7 @@ def test_offset_not_committed(
 
 @pytest.mark.integration
 def test_binary_consume_to_stdout(
-    producer: ConfluentProducer, source_topic: Tuple[str, int], non_interactive_cli_runner: CliRunner
+        producer: ConfluentProducer, source_topic: Tuple[str, int], non_interactive_cli_runner: CliRunner
 ):
     source_topic_id, _ = source_topic
     expected_messages = produce_binary_test_messages(producer, topic_name=source_topic_id)
