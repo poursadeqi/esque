@@ -2,7 +2,8 @@ import dataclasses
 import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from confluent_kafka import OFFSET_BEGINNING, OFFSET_END, Consumer, KafkaError, Message, Producer, TopicPartition
+from confluent_kafka import OFFSET_BEGINNING, OFFSET_END, Consumer, KafkaError, Message as KafkaMessage, Producer, \
+    TopicPartition
 from confluent_kafka.admin import TopicMetadata
 
 from esque import config as esque_config
@@ -167,7 +168,7 @@ class KafkaHandler(BaseHandler):
         if not self._assignment_created:
             self._assign()
 
-        consumed_message: Optional[Message] = None
+        consumed_message: Optional[KafkaMessage] = None
         while consumed_message is None:
             consumed_message = self._get_consumer().poll(timeout=0.1)
             if consumed_message is None and all(self._eof_reached.values()):
@@ -181,7 +182,7 @@ class KafkaHandler(BaseHandler):
 
             return self._confluent_to_printable_message(consumed_message)
 
-    def _confluent_to_printable_message(self, consumed_message: Message) -> StreamEvent:
+    def _confluent_to_printable_message(self, consumed_message: KafkaMessage) -> StreamEvent:
         return StreamEvent(
             Message(
                 key=self.config.read_serializer.key.deserialize(consumed_message.key()),
@@ -199,7 +200,7 @@ class KafkaHandler(BaseHandler):
 
     @staticmethod
     def _confluent_to_io_headers(
-        confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]],
+            confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]],
     ) -> List[MessageHeader]:
         io_headers: List[MessageHeader] = []
 

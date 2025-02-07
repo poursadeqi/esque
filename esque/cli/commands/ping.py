@@ -1,3 +1,4 @@
+import base64
 import datetime
 import time
 import uuid
@@ -11,6 +12,7 @@ from esque.cli.options import State, default_options
 from esque.config import PING_TOPIC
 from esque.io.handlers.kafka import KafkaHandler, KafkaHandlerConfig
 from esque.io.messages import Message, MessagePayload
+from esque.io.stream_decorators import skip_stream_events
 from esque.io.stream_events import StreamEvent
 from esque.resources.topic import Topic
 
@@ -35,7 +37,7 @@ def ping(state: State, times: int, wait: int):
 
     if not topic_controller.topic_exists(PING_TOPIC):
         if ensure_approval(
-            f"Topic {PING_TOPIC!r} does not exist, do you want to create it?", no_verify=state.no_verify
+                f"Topic {PING_TOPIC!r} does not exist, do you want to create it?", no_verify=state.no_verify
         ):
             topic_config = {
                 "cleanup.policy": "compact,delete",
@@ -54,7 +56,7 @@ def ping(state: State, times: int, wait: int):
     output_handler.write_message(create_tombstone_stream_event(ping_id))
 
     input_handler = KafkaHandler(KafkaHandlerConfig(context=state.config.current_context, topic=PING_TOPIC))
-    input_stream = filter(key_matches(ping_id), input_handler.message_stream())
+    input_stream = filter(key_matches(ping_id), skip_stream_events(input_handler.message_stream()))
     message_iterator = iter(input_stream)
 
     click.echo("Initializing consumer.")
@@ -66,10 +68,10 @@ def ping(state: State, times: int, wait: int):
     try:
         for i in range(times):
             output_handler.write_message(create_ping_stream_event(ping_id))
-            msg_recieved = next(message_iterator)
+            msg_received: StreamEvent = next(message_iterator)
 
-            dt_created = dt_from_bytes(msg_recieved.value)
-            dt_delivered = msg_recieved.timestamp
+            dt_created = dt_from_bytes(msg_received.message.value.payload)
+            dt_delivered = msg_received.message.timestamp
             dt_received = datetime.datetime.now(tz=datetime.timezone.utc)
 
             time_client_to_server_ms = (dt_delivered - dt_created).microseconds / 1000
@@ -97,7 +99,7 @@ def ping(state: State, times: int, wait: int):
 
 
 def key_matches(ping_id: bytes) -> Callable[[StreamEvent], bool]:
-    return lambda event: hasattr(event, "message") and event.message.key == ping_id
+    return lambda event: event.message is not None and event.message.key.payload == ping_id
 
 
 def stats(deltas: List[int]) -> str:
@@ -108,7 +110,7 @@ def create_ping_stream_event(ping_id) -> StreamEvent:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
     return StreamEvent(
         Message(
-            key=ping_id,
+            key=MessagePayload(ping_id),
             value=MessagePayload(dt_to_bytes(create_time)),
             partition=-1,
             offset=-1,
@@ -121,7 +123,12 @@ def create_ping_stream_event(ping_id) -> StreamEvent:
 def create_tombstone_stream_event(ping_id) -> StreamEvent:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
     return StreamEvent(
-        Message(key=ping_id, value=MessagePayload(None), partition=-1, offset=-1, timestamp=create_time, headers=[])
+        Message(key=MessagePayload(ping_id),
+                value=MessagePayload(None),
+                partition=-1,
+                offset=-1,
+                timestamp=create_time,
+                headers=[])
     )
 
 

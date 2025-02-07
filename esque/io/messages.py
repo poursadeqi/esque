@@ -40,3 +40,7 @@ class Message:
     offset: int = -1
     timestamp: datetime.datetime = dataclasses.field(default_factory=now_utc)
     headers: List[MessageHeader] = dataclasses.field(default_factory=list)
+
+    def __post_init__(self):
+        if (not isinstance(self.key, MessagePayload)) or (not isinstance(self.value, MessagePayload)):
+            raise Exception("key and value should be of type MessagePayload")
