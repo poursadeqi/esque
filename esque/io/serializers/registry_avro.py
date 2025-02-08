@@ -241,10 +241,9 @@ class RegistryAvroSerializer(DataSerializer):
         self._registry_client = SchemaRegistryClient.from_config(config)
 
     def serialize(self, data: PrimaryTypes) -> Optional[bytes]:
-        avro_type = ensure_avro_type(data)
         schema_id = self._registry_client.get_or_create_id_for_avro_type(avro_type)
         buffer = io.BytesIO()
-        fastavro.schemaless_writer(buffer, avro_type.fastavro_schema, data.payload)
+        fastavro.schemaless_writer(buffer, avro_type.fastavro_schema, data)
         return create_schema_id_prefix(schema_id) + buffer.getvalue()
 
     def deserialize(self, raw_data: Optional[bytes]) -> PrimaryTypes:
@@ -269,17 +268,3 @@ class AvroType:
     @functools.cached_property
     def fastavro_schema(self) -> Any:
         return fastavro.parse_schema(schema=self.avro_schema)
-
-
-def ensure_avro_type(data_type) -> AvroType:
-    if isinstance(data_type, AvroType):
-        # everything fine, return as is
-        return data_type
-
-    if isinstance(data_type, CustomDataType):
-        # It's another custom data type, we'll have to do lossy conversion
-        # by converting it to a general esque data type first
-        # TODO cache this somehow?
-        data_type = data_type.to_esque_data_type()
-
-    return AvroType.from_esque_data_type(data_type)
