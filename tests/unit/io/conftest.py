@@ -90,7 +90,7 @@ def dummy_handler() -> DummyHandler:
 
 
 @fixture()
-def printable_messages() -> List[Message]:
+def messages() -> List[Message]:
     return [
         Message(
             key="foo1",
@@ -155,8 +155,8 @@ def partition_count(binary_messages) -> int:
 
 
 @fixture()
-def string_messages(binary_messages: List[Message], string_message_serializer: MessageSerializer) -> List[Message]:
-    return list(string_message_serializer.deserialize_many(binary_messages))
+def string_messages(messages: List[Message], string_message_serializer: MessageSerializer) -> List[Message]:
+    return list(string_message_serializer.deserialize(msg) for msg in messages)
 
 
 @fixture()
@@ -205,9 +205,9 @@ def dummy_message_writer() -> DummyMessageWriter:
 
 @fixture
 def prepared_builder(
-    dummy_message_reader: DummyMessageReader,
-    dummy_message_writer: DummyMessageWriter,
-    binary_messages: List[Message],
+        dummy_message_reader: DummyMessageReader,
+        dummy_message_writer: DummyMessageWriter,
+        binary_messages: List[Message],
 ) -> PipelineBuilder:
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)
