@@ -2,6 +2,8 @@ import dataclasses
 import urllib
 from urllib.parse import ParseResult
 
+from esque.io.serializers.schema_registry.schema_factory import get_supported_schema
+
 
 @dataclasses.dataclass()
 class RegistryAvroSerializerConfig:
@@ -20,11 +22,10 @@ class RegistryAvroSerializerConfig:
         except Exception as e:  # noqa
             problems.append(f"exception of type {type(e).__name__} occurred during uri parsing: {e.args}")
         else:
-            supported_schemas = ["http", "https", "memory"]
-            if parsed_uri_result.scheme not in supported_schemas:
+            if parsed_uri_result.scheme not in get_supported_schema().keys():
                 problems.append(
                     f"unknown scheme for schema registry client: {parsed_uri_result.scheme}. "
-                    f"Supported client schemes: {','.join(supported_schemas)}"
+                    f"Supported client schemes: {','.join(get_supported_schema().keys())}"
                 )
 
         return problems
