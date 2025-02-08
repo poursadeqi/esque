@@ -2,7 +2,7 @@ import dataclasses
 from abc import ABC, abstractmethod
 from typing import Union
 
-from esque.io.messages import MessagePayload,PrimaryTypes
+from esque.io.messages import MessagePayload, PrimaryTypes
 
 
 class DataSerializer(ABC):

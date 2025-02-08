@@ -88,7 +88,7 @@ def skip_messages_with_offset_below(left_bound: int) -> Callable[[Iterable[Strea
 
 
 def yield_messages_sorted_by_timestamp(
-        partition_count: int,
+    partition_count: int,
 ) -> Callable[[Iterable[StreamEvent]], Iterable[StreamEvent]]:
     def _yield_messages_sorted_by_timestamp(stream: Iterable[StreamEvent]) -> Iterable[StreamEvent]:
         partition_buffers, global_event_buffer = create_partition_buffers(stream)
@@ -144,7 +144,7 @@ def yield_messages_sorted_by_timestamp(
 
 
 def yield_only_matching_messages(
-        match_expr_or_rule_tree: Union[str, RuleTree],
+    match_expr_or_rule_tree: Union[str, RuleTree],
 ) -> Callable[[Iterable[StreamEvent]], Iterable[StreamEvent]]:
     if not isinstance(match_expr_or_rule_tree, RuleTree):
         tree = RuleTree(match_expr_or_rule_tree)
@@ -180,6 +180,7 @@ def event_counter() -> Tuple[EventCounter, Callable[[Iterable[StreamEvent]], Ite
             yield msg
 
     return counter, event_counter_
+
 
 # def stop_at_message_timeout(iterable: EventStream, message_timeout: int) -> EventStream:
 #     iterator: Iterator[T] = iter(iterable)

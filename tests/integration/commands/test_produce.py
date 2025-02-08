@@ -1,6 +1,6 @@
 import json
 import time
-from typing import Callable, List
+from typing import Any, Callable, Generator, List
 
 import confluent_kafka
 import pytest
@@ -15,7 +15,7 @@ from esque.errors import NoConfirmationPossibleException
 
 
 @fixture
-def consumer_factory(unittest_config: Config) -> Callable[[str], Consumer]:
+def consumer_factory(unittest_config: Config) -> Generator[Callable[[str], Consumer], Any, None]:
     consumers: List[Consumer] = []
 
     def consumer_factory_(topic: str) -> Consumer:
@@ -41,14 +41,30 @@ def consumer_factory(unittest_config: Config) -> Callable[[str], Consumer]:
 
 @pytest.mark.integration
 def test_produce_can_create_topic(
-    consumer_factory: Callable[[str], Consumer],
-    non_interactive_cli_runner: CliRunner,
-    topic_id: str,
-    tmpdir_factory: TempPathFactory,
+        consumer_factory: Callable[[str], Consumer],
+        non_interactive_cli_runner: CliRunner,
+        topic_id: str,
+        tmpdir_factory: TempPathFactory,
 ):
     data = json.dumps(dict(key="key1", value="value1")) + "\n"
     result = non_interactive_cli_runner.invoke(
-        esque, args=["produce", "--no-verify", "--stdin", topic_id], input=data, catch_exceptions=False
+        esque,
+        args=[
+            "stream",
+            "--no-verify",
+            "--input-source",
+            "stdin",
+            "--input-key-deserializer",
+            "str",
+            "--input-value-deserializer",
+            "str",
+            "--output-dest",
+            "kafka",
+            "--output-topic",
+            topic_id,
+        ],
+        input=data,
+        catch_exceptions=False,
     )
     assert result.exit_code == 0
     consumer = consumer_factory(topic_id)
@@ -75,7 +91,7 @@ def test_binary_and_avro_fails(non_interactive_cli_runner: CliRunner):
 
 @pytest.mark.integration
 def test_produce_to_non_existent_topic_fails(
-    confluent_admin_client: confluent_kafka.admin.AdminClient, non_interactive_cli_runner: CliRunner, topic_id: str
+        confluent_admin_client: confluent_kafka.admin.AdminClient, non_interactive_cli_runner: CliRunner, topic_id: str
 ):
     target_topic_id = topic_id
     data = "".join([json.dumps(dict(key='"key1"', value='"value1"')) + "\n"])

@@ -108,8 +108,8 @@ class ConsumeOptions:
 @click.option(
     "--last/--first",
     help="Start consuming from the earliest or latest offset in the topic."
-    "Latest means at the end of the topic _not including_ the last message(s),"
-    "so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
+         "Latest means at the end of the topic _not including_ the last message(s),"
+         "so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
     default=False,
 )
 @click.option("--input-key-struct-format", help="Set this flag to set encoding for key", type=str)
@@ -118,15 +118,15 @@ class ConsumeOptions:
 @click.option("--output-value-struct-format", help="Set this flag to set output encoding for value.", type=str)
 @click.option(
     "--input-key-deserializer",
-    type=click.Choice(["str", "binary", "avro", "proto", "struct"], case_sensitive=False),
+    type=click.Choice(["str", "avro", "proto", "struct"], case_sensitive=False),
     help="Specify deserialization for keys",
-    default="binary",
+    default="str",
 )
 @click.option(
     "--input-value-deserializer",
-    type=click.Choice(["str", "binary", "avro", "proto", "struct"], case_sensitive=False),
+    type=click.Choice(["str", "avro", "proto", "struct"], case_sensitive=False),
     help="Specify deserialization for keys",
-    default="binary",
+    default="str",
 )
 @click.option(
     "--output-key-serializer",
@@ -154,8 +154,8 @@ class ConsumeOptions:
 @click.option(
     "--preserve-order",
     help="Preserve the order of messages, regardless of their partition. "
-    "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
-    "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
+         "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
+         "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
     default=False,
     is_flag=True,
 )
@@ -163,7 +163,7 @@ class ConsumeOptions:
     "-p",
     "--pretty-print",
     help="Use multiple lines to represent each kafka message instead of putting every JSON object into a single "
-    "line. Only has an effect when consuming to stdout.",
+         "line. Only has an effect when consuming to stdout.",
     default=False,
     is_flag=True,
 )
@@ -196,49 +196,49 @@ def stream(state: State, **kwargs):
     # Extract binary data from keys (depending on the data this could mess up your console)
     esque consume --stdout --binary TOPIC | jq '.key | @base64d'
     """
-    consumer_options = ConsumeOptions(**kwargs)
+    stream_options = ConsumeOptions(**kwargs)
 
-    if not consumer_options.input_ctx:
-        consumer_options.input_ctx = state.config.current_context
-    state.config.context_switch(consumer_options.input_ctx)
+    if not stream_options.input_ctx:
+        stream_options.input_ctx = state.config.current_context
+    state.config.context_switch(stream_options.input_ctx)
 
     input_deserializer = create_key_value_serializer(
         state,
-        consumer_options.input_key_deserializer,
-        consumer_options.input_key_struct_format,
-        consumer_options.input_value_deserializer,
-        consumer_options.input_value_struct_format,
-        consumer_options,
+        stream_options.input_key_deserializer,
+        stream_options.input_key_struct_format,
+        stream_options.input_value_deserializer,
+        stream_options.input_value_struct_format,
+        stream_options,
     )
 
     output_serializer = create_key_value_serializer(
         state,
-        consumer_options.output_key_serializer,
-        consumer_options.output_key_struct_format,
-        consumer_options.output_value_serializer,
-        consumer_options.output_value_struct_format,
-        consumer_options,
+        stream_options.output_key_serializer,
+        stream_options.output_key_struct_format,
+        stream_options.output_value_serializer,
+        stream_options.output_value_struct_format,
+        stream_options,
     )
 
     builder = PipelineBuilder()
-    builder.with_input_handler(create_input_handler(input_deserializer, consumer_options))
-    builder.with_output_handler(create_output_handler(output_serializer, consumer_options))
+    builder.with_input_handler(create_input_handler(input_deserializer, stream_options))
+    builder.with_output_handler(create_output_handler(output_serializer, stream_options))
 
-    if consumer_options.last:
+    if stream_options.last:
         start = KafkaHandler.OFFSET_AFTER_LAST_MESSAGE
     else:
         start = KafkaHandler.OFFSET_AT_FIRST_MESSAGE
 
-    builder.with_range(start=start, limit=consumer_options.number)
+    builder.with_range(start=start, limit=stream_options.number)
 
-    if consumer_options.preserve_order:
+    if stream_options.preserve_order:
         topic_data = Cluster().topic_controller.get_cluster_topic(
-            consumer_options.input_topic, retrieve_partition_watermarks=False
+            stream_options.input_topic, retrieve_partition_watermarks=False
         )
         builder.with_stream_decorator(yield_messages_sorted_by_timestamp(len(topic_data.partitions)))
 
-    if consumer_options.match:
-        builder.with_stream_decorator(yield_only_matching_messages(consumer_options.match))
+    if stream_options.match:
+        builder.with_stream_decorator(yield_only_matching_messages(stream_options.match))
 
     counter, counter_decorator = event_counter()
 
@@ -247,27 +247,33 @@ def stream(state: State, **kwargs):
     builder.build().run_pipeline()
 
 
-def create_input_handler(read_serializer: MessageSerializer, consumer_options: ConsumeOptions):
-    consumer_group = consumer_options.consumer_group
+def create_input_handler(read_serializer: MessageSerializer, stream_options: ConsumeOptions):
+    if stream_options.input_source == "stdin":
+        return PipeHandler(
+            PipeHandlerConfig(
+                read_serializer=read_serializer, pretty_print=stream_options.pretty_print, file=sys.stdin
+            )
+        )
+    consumer_group = stream_options.consumer_group
     if not consumer_group:
         consumer_group = ESQUE_GROUP_ID
     return KafkaHandler(
         KafkaHandlerConfig(
             read_serializer=read_serializer,
-            context=consumer_options.input_ctx,
-            topic=consumer_options.input_topic,
+            context=stream_options.input_ctx,
+            topic=stream_options.input_topic,
             consumer_group_id=consumer_group,
         )
     )
 
 
 def create_key_value_serializer(
-    state: State,
-    key_deserializer: str,
-    key_struct_format: str,
-    val_deserializer: str,
-    val_struct_format: str,
-    consumer_options: ConsumeOptions,
+        state: State,
+        key_deserializer: str,
+        key_struct_format: str,
+        val_deserializer: str,
+        val_struct_format: str,
+        consumer_options: ConsumeOptions,
 ) -> MessageSerializer:
     key_serializer = create_serializer(state, key_deserializer, key_struct_format, consumer_options)
     val_serializer = create_serializer(state, val_deserializer, val_struct_format, consumer_options)
@@ -275,8 +281,16 @@ def create_key_value_serializer(
     return MessageSerializer(key=key_serializer, value=val_serializer)
 
 
-def create_output_handler(serializer: MessageSerializer, consumer_options: ConsumeOptions):
-    return PipeHandler(PipeHandlerConfig(file=sys.stdout, pretty_print=consumer_options.pretty_print))
+def create_output_handler(serializer: MessageSerializer, stream_options: ConsumeOptions):
+    if stream_options.output_dest == "kafka":
+        return KafkaHandler(
+            KafkaHandlerConfig(
+                write_serializer=serializer,
+                context=stream_options.output_ctx,
+                topic=stream_options.output_topic,
+            )
+        )
+    return PipeHandler(PipeHandlerConfig(file=sys.stdout, pretty_print=stream_options.pretty_print))
 
 
 def create_serializer(state: State, serializer: str, struct_format: str, consumer_options: ConsumeOptions):

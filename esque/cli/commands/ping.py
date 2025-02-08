@@ -37,7 +37,7 @@ def ping(state: State, times: int, wait: int):
 
     if not topic_controller.topic_exists(PING_TOPIC):
         if ensure_approval(
-                f"Topic {PING_TOPIC!r} does not exist, do you want to create it?", no_verify=state.no_verify
+            f"Topic {PING_TOPIC!r} does not exist, do you want to create it?", no_verify=state.no_verify
         ):
             topic_config = {
                 "cleanup.policy": "compact,delete",
@@ -123,12 +123,14 @@ def create_ping_stream_event(ping_id) -> StreamEvent:
 def create_tombstone_stream_event(ping_id) -> StreamEvent:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
     return StreamEvent(
-        Message(key=MessagePayload(ping_id),
-                value=MessagePayload(None),
-                partition=-1,
-                offset=-1,
-                timestamp=create_time,
-                headers=[])
+        Message(
+            key=MessagePayload(ping_id),
+            value=MessagePayload(None),
+            partition=-1,
+            offset=-1,
+            timestamp=create_time,
+            headers=[],
+        )
     )
 
 

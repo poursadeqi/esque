@@ -2,8 +2,9 @@ import dataclasses
 import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from confluent_kafka import OFFSET_BEGINNING, OFFSET_END, Consumer, KafkaError, Message as KafkaMessage, Producer, \
-    TopicPartition
+from confluent_kafka import OFFSET_BEGINNING, OFFSET_END, Consumer, KafkaError
+from confluent_kafka import Message as KafkaMessage
+from confluent_kafka import Producer, TopicPartition
 from confluent_kafka.admin import TopicMetadata
 
 from esque import config as esque_config
@@ -110,6 +111,8 @@ class KafkaHandler(BaseHandler):
         self._flush()
 
     def _produce_single_message(self, message: Message) -> None:
+        if message is None:
+            return
         partition_arg = {}
         partition = self._io_to_confluent_partition(message.partition)
         if partition is not None:

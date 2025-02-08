@@ -44,9 +44,9 @@ class PipeHandler(BaseHandler):
 
     def read_message(self) -> StreamEvent:
         while True:
-            msg = self._next_message()
-            if isinstance(msg, StreamEvent) or msg.offset >= self._left_bound:
-                return msg
+            event = self._next_message()
+            if isinstance(event, StreamEvent) or event.offset >= self._left_bound:
+                return event
 
     def _next_message(self) -> StreamEvent:
         line = ""
@@ -63,16 +63,17 @@ class PipeHandler(BaseHandler):
                 f"Make sure json objects are single-line and not pretty printed. Original Error: {e}"
             )
 
-        return Message(
-            key=self.config.read_serializer.key.deserialize(deserialized_object.get("key")),
-            value=self.config.read_serializer.value.deserialize(deserialized_object.get("value")),
-            offset=deserialized_object.get("offset", -1),
-            partition=deserialized_object.get("partition", -1),
-            timestamp=datetime.datetime.fromtimestamp(
-                deserialized_object.get("timestamp", 0), tz=datetime.timezone.utc
-            ),
-            headers=[MessageHeader(h["key"], h.get("value")) for h in deserialized_object.get("headers", [])],
-        )
+        return StreamEvent(
+            Message(
+                key=self.config.read_serializer.key.deserialize(deserialized_object.get("key")),
+                value=self.config.read_serializer.value.deserialize(deserialized_object.get("value")),
+                offset=deserialized_object.get("offset", -1),
+                partition=deserialized_object.get("partition", -1),
+                timestamp=datetime.datetime.fromtimestamp(
+                    deserialized_object.get("timestamp", 0), tz=datetime.timezone.utc
+                ),
+                headers=[MessageHeader(h["key"], h.get("value")) for h in deserialized_object.get("headers", [])],
+            ))
 
     def seek(self, position: int):
         self._left_bound = position

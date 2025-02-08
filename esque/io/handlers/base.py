@@ -64,7 +64,7 @@ class BaseHandler(ABC):
         """
         raise NotImplementedError
 
-    def stream(self) -> Iterable[Union[Message, StreamEvent]]:
+    def stream(self) -> Iterable[StreamEvent]:
         while True:
             msg = self.read_message()
             yield msg
