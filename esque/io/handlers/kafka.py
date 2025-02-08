@@ -190,6 +190,8 @@ class KafkaHandler(BaseHandler):
             Message(
                 key=self.config.read_serializer.key.deserialize(consumed_message.key()),
                 value=self.config.read_serializer.value.deserialize(consumed_message.value()),
+                key_version=self.config.read_serializer.key.get_version(consumed_message.key()),
+                value_version=self.config.read_serializer.key.get_version(consumed_message.value()),
                 partition=consumed_message.partition(),
                 offset=consumed_message.offset(),
                 timestamp=self._confluent_to_io_timestamp(consumed_message),
@@ -203,7 +205,7 @@ class KafkaHandler(BaseHandler):
 
     @staticmethod
     def _confluent_to_io_headers(
-        confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]],
+            confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]],
     ) -> List[MessageHeader]:
         io_headers: List[MessageHeader] = []
 

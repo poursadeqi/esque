@@ -38,6 +38,8 @@ class PipeHandler(BaseHandler):
                     "timestamp": event.message.timestamp.timestamp(),
                     "timestamp_iso": event.message.timestamp.isoformat(),
                     "headers": [{"key": h.key, "value": h.value} for h in event.message.headers],
+                    "key_version": event.message.key_version,
+                    "value_version": event.message.value_version,
                 }
             ),
             indent=2 if self.config.pretty_print else None,

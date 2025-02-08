@@ -19,8 +19,8 @@ def now_utc() -> datetime.datetime:
 class Message:
     key: PrimaryTypes
     value: PrimaryTypes
-    key_version: str = ""
-    value_version: str = ""
+    key_version: dict = None
+    value_version: dict = None
     partition: int = -1
     offset: int = -1
     timestamp: datetime.datetime = dataclasses.field(default_factory=now_utc)

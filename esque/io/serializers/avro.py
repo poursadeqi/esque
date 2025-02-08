@@ -44,3 +44,7 @@ class RegistryAvroSerializer(DataSerializer):
             schema_id = get_schema_id_from_prefix(fake_stream.read(5))
             avro_type = self._registry_client.get_avro_type_by_id(schema_id)
             return fastavro.schemaless_reader(fake_stream, avro_type.fastavro_schema)
+
+    def get_version(self, raw_data: Optional[bytes]) -> dict:
+        with io.BytesIO(raw_data) as fake_stream:
+            return {"schema_id": get_schema_id_from_prefix(fake_stream.read(5))}
