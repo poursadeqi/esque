@@ -73,7 +73,8 @@ class PipeHandler(BaseHandler):
                     deserialized_object.get("timestamp", 0), tz=datetime.timezone.utc
                 ),
                 headers=[MessageHeader(h["key"], h.get("value")) for h in deserialized_object.get("headers", [])],
-            ))
+            )
+        )
 
     def seek(self, position: int):
         self._left_bound = position

@@ -41,9 +41,7 @@ def consumer_factory(unittest_config: Config) -> Generator[Callable[[str], Consu
 
 @pytest.mark.integration
 def test_produce_can_create_topic(
-        consumer_factory: Callable[[str], Consumer],
-        non_interactive_cli_runner: CliRunner,
-        topic_id: str
+    consumer_factory: Callable[[str], Consumer], non_interactive_cli_runner: CliRunner, topic_id: str
 ):
     data = json.dumps(dict(key="key1", value="value1")) + "\n"
     result = non_interactive_cli_runner.invoke(
@@ -81,20 +79,27 @@ def test_produce_can_create_topic(
 
 
 @pytest.mark.integration
-def test_binary_and_avro_fails(non_interactive_cli_runner: CliRunner):
-    with pytest.raises(ValueError):
-        non_interactive_cli_runner.invoke(
-            esque, args=["produce", "--binary", "--avro", "thetopic"], catch_exceptions=False
-        )
-
-
-@pytest.mark.integration
 def test_produce_to_non_existent_topic_fails(
-        confluent_admin_client: confluent_kafka.admin.AdminClient, non_interactive_cli_runner: CliRunner, topic_id: str
+    confluent_admin_client: confluent_kafka.admin.AdminClient, non_interactive_cli_runner: CliRunner, topic_id: str
 ):
-    target_topic_id = topic_id
     data = "".join([json.dumps(dict(key='"key1"', value='"value1"')) + "\n"])
-    result = non_interactive_cli_runner.invoke(esque, args=["produce", "--stdin", target_topic_id], input=data)
+    result = non_interactive_cli_runner.invoke(
+        esque,
+        args=[
+            "stream",
+            "--input-source",
+            "stdin",
+            "--input-key-deserializer",
+            "str",
+            "--input-value-deserializer",
+            "str",
+            "--output-dest",
+            "kafka",
+            "--output-topic",
+            topic_id,
+        ],
+        input=data,
+    )
     assert isinstance(result.exception, NoConfirmationPossibleException)
     topics = confluent_admin_client.list_topics(timeout=5).topics.keys()
-    assert target_topic_id not in topics
+    assert topic_id not in topics

@@ -5,6 +5,7 @@ from typing import Optional
 import click
 
 from esque.cli.autocomplete import list_consumergroups, list_contexts, list_topics
+from esque.cli.helpers import ensure_approval
 from esque.cli.options import State, default_options
 from esque.cluster import Cluster
 from esque.config import ESQUE_GROUP_ID
@@ -19,6 +20,7 @@ from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.serializers.struct import StructSerializer, StructSerializerConfig
 from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_timestamp, yield_only_matching_messages
+from esque.resources.topic import Topic
 
 
 @dataclass
@@ -108,8 +110,8 @@ class ConsumeOptions:
 @click.option(
     "--last/--first",
     help="Start consuming from the earliest or latest offset in the topic."
-         "Latest means at the end of the topic _not including_ the last message(s),"
-         "so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
+    "Latest means at the end of the topic _not including_ the last message(s),"
+    "so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
     default=False,
 )
 @click.option("--input-key-struct-format", help="Set this flag to set encoding for key", type=str)
@@ -118,13 +120,13 @@ class ConsumeOptions:
 @click.option("--output-value-struct-format", help="Set this flag to set output encoding for value.", type=str)
 @click.option(
     "--input-key-deserializer",
-    type=click.Choice(["str", "avro", "proto", "struct"], case_sensitive=False),
+    type=click.Choice(["str", "binary", "avro", "proto", "struct"], case_sensitive=False),
     help="Specify deserialization for keys",
     default="str",
 )
 @click.option(
     "--input-value-deserializer",
-    type=click.Choice(["str", "avro", "proto", "struct"], case_sensitive=False),
+    type=click.Choice(["str", "binary", "avro", "proto", "struct"], case_sensitive=False),
     help="Specify deserialization for keys",
     default="str",
 )
@@ -154,8 +156,8 @@ class ConsumeOptions:
 @click.option(
     "--preserve-order",
     help="Preserve the order of messages, regardless of their partition. "
-         "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
-         "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
+    "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
+    "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
     default=False,
     is_flag=True,
 )
@@ -163,7 +165,7 @@ class ConsumeOptions:
     "-p",
     "--pretty-print",
     help="Use multiple lines to represent each kafka message instead of putting every JSON object into a single "
-         "line. Only has an effect when consuming to stdout.",
+    "line. Only has an effect when consuming to stdout.",
     default=False,
     is_flag=True,
 )
@@ -222,7 +224,7 @@ def stream(state: State, **kwargs):
 
     builder = PipelineBuilder()
     builder.with_input_handler(create_input_handler(input_deserializer, stream_options))
-    builder.with_output_handler(create_output_handler(output_serializer, stream_options))
+    builder.with_output_handler(create_output_handler(state, output_serializer, stream_options))
 
     if stream_options.last:
         start = KafkaHandler.OFFSET_AFTER_LAST_MESSAGE
@@ -268,12 +270,12 @@ def create_input_handler(read_serializer: MessageSerializer, stream_options: Con
 
 
 def create_key_value_serializer(
-        state: State,
-        key_deserializer: str,
-        key_struct_format: str,
-        val_deserializer: str,
-        val_struct_format: str,
-        consumer_options: ConsumeOptions,
+    state: State,
+    key_deserializer: str,
+    key_struct_format: str,
+    val_deserializer: str,
+    val_struct_format: str,
+    consumer_options: ConsumeOptions,
 ) -> MessageSerializer:
     key_serializer = create_serializer(state, key_deserializer, key_struct_format, consumer_options)
     val_serializer = create_serializer(state, val_deserializer, val_struct_format, consumer_options)
@@ -281,8 +283,18 @@ def create_key_value_serializer(
     return MessageSerializer(key=key_serializer, value=val_serializer)
 
 
-def create_output_handler(serializer: MessageSerializer, stream_options: ConsumeOptions):
+def create_output_handler(state: State, serializer: MessageSerializer, stream_options: ConsumeOptions):
     if stream_options.output_dest == "kafka":
+        topic_controller = Cluster().topic_controller
+        topic = stream_options.output_topic
+        if not topic_controller.topic_exists(stream_options.output_topic):
+            if ensure_approval(
+                f"Topic {topic!r} does not exist, do you want to create it?", no_verify=state.no_verify
+            ):
+                topic_controller.create_topics([Topic(topic)])
+            else:
+                click.echo(click.style("Aborted!", bg="red"))
+                return
         return KafkaHandler(
             KafkaHandlerConfig(
                 write_serializer=serializer,
