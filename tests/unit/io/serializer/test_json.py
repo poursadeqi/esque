@@ -3,6 +3,7 @@ from typing import List
 
 from pytest_cases import fixture
 
+from esque.io.messages import PrimaryTypes
 from esque.io.serializers.json import JsonSerializer, JsonSerializerConfig
 
 CET = datetime.timezone(datetime.timedelta(seconds=3600), "CET")
@@ -48,22 +49,24 @@ EXPECTED_DESERIALIZED_DATA = [
 
 @fixture
 def serializer() -> JsonSerializer:
-    return JsonSerializer(JsonSerializerConfig(scheme="json", indent=None))
+    return JsonSerializer(JsonSerializerConfig(indent=None))
 
 
-def test_json_serializer(serializer):
+def test_json_serializer(serializer: JsonSerializer):
     actual_serialized_data: bytes = serializer.serialize(ORIGINAL_TEST_DATA[0])
     assert actual_serialized_data == EXPECTED_SERIALIZED_DATA[0]
     actual_serialized_data: bytes = serializer.serialize(EXPECTED_DESERIALIZED_DATA[0])
     assert actual_serialized_data == EXPECTED_SERIALIZED_DATA[0]
 
-    actual_deserialized_data: MessagePayload = serializer.deserialize(EXPECTED_SERIALIZED_DATA[0])
+    actual_deserialized_data = serializer.deserialize(EXPECTED_SERIALIZED_DATA[0])
     assert actual_deserialized_data == EXPECTED_DESERIALIZED_DATA[0]
 
 
-def test_json_serializer_many(serializer):
-    actual_serialized_data: List[bytes] = list(serializer.serialize_many(ORIGINAL_TEST_DATA))
+def test_json_serializer_many(serializer: JsonSerializer):
+    actual_serialized_data: List[str] = list(serializer.serialize(msg) for msg in ORIGINAL_TEST_DATA)
     assert actual_serialized_data == EXPECTED_SERIALIZED_DATA
 
-    actual_deserialized_data: List[MessagePayload] = list(serializer.deserialize_many(EXPECTED_SERIALIZED_DATA))
+    actual_deserialized_data: List[PrimaryTypes] = list(
+        serializer.deserialize(msg) for msg in EXPECTED_SERIALIZED_DATA
+    )
     assert actual_deserialized_data == EXPECTED_DESERIALIZED_DATA

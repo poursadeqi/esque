@@ -85,7 +85,7 @@ def registry_avro_serializer(registry_avro_config: RegistryAvroSerializerConfig)
 
 
 def test_registry_client_same_schema_same_id(
-    registry_avro_config: RegistryAvroSerializerConfig, avro_type: MessagePayload
+    registry_avro_config: RegistryAvroSerializerConfig, avro_type: PrimaryTypes
 ):
     client1 = SchemaRegistryClient.from_config(registry_avro_config)
     schema_id1 = client1.get_or_create_id_for_avro_type(avro_type)
@@ -96,7 +96,7 @@ def test_registry_client_same_schema_same_id(
     assert schema_id1 == schema_id2
 
 
-def test_registry_client_schema_retrieval(schema_registry_client: SchemaRegistryClient, avro_type: MessagePayload):
+def test_registry_client_schema_retrieval(schema_registry_client: SchemaRegistryClient, avro_type: PrimaryTypes):
     schema_id = schema_registry_client.get_or_create_id_for_avro_type(avro_type)
     actual_type = schema_registry_client.get_avro_type_by_id(schema_id)
 
