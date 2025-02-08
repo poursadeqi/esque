@@ -1,9 +1,7 @@
 import base64
 import datetime
 
-import pytest
-import pytest_cases.case_parametrizer_new
-from pytest_cases import fixture
+from pytest_cases import fixture, parametrize_with_cases
 
 from esque.io.serializers.proto import ProtoSerializer, ProtoSerializerConfig
 
@@ -17,7 +15,6 @@ def serializer() -> ProtoSerializer:
     )
 
 
-@pytest_cases.case
 def proto_cases_only_name_is_set():
     return ("CgdlYnJhaGlt", {
         "type_string": "ebrahim",
@@ -27,7 +24,17 @@ def proto_cases_only_name_is_set():
     })
 
 
-@pytest_cases.parametrize_with_cases(argnames=("b64", "expected"), prefix="proto_cases")
-def test_proto_deserializer(serializer, b64, expected: dict):
+def proto_cases_when_optional_name_is_set():
+    return ("EgtpbSBvcHRpb25hbA==", {
+        "optional_string": "im optional",
+        "type_string": "",
+        "type_enum": "ENUM_TYPE_UNSPECIFIED",
+        "type_int32": 0,
+        "type_int64": "0",
+    })
+
+
+@parametrize_with_cases(argnames=("b64", "expected"), prefix="proto_cases", cases=".")
+def test_proto_deserializer(serializer, b64, expected):
     actual_result = serializer.deserialize(base64.b64decode(b64))
     assert actual_result == expected
