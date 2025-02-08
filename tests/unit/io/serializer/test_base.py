@@ -6,7 +6,7 @@ from esque.io.serializers.string import StringSerializer
 
 
 def test_message_serializer(
-        messages: List[Message], string_messages: List[Message], string_serializer: StringSerializer
+    messages: List[Message], string_messages: List[Message], string_serializer: StringSerializer
 ):
     serializer: MessageSerializer = MessageSerializer(key=string_serializer)
     deserialized_message: Message = serializer.deserialize(messages[0])

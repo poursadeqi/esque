@@ -33,7 +33,6 @@ EXPECTED_SERIALIZED_DATA = [
 # TODO: after we introduced proper schema handling for the json serializer this would look the same as
 #   Expected data above
 EXPECTED_DESERIALIZED_DATA = [
-
     {
         "str_field": "Übung",
         "int_field": 1337,

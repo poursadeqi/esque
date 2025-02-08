@@ -205,9 +205,9 @@ def dummy_message_writer() -> DummyMessageWriter:
 
 @fixture
 def prepared_builder(
-        dummy_message_reader: DummyMessageReader,
-        dummy_message_writer: DummyMessageWriter,
-        binary_messages: List[Message],
+    dummy_message_reader: DummyMessageReader,
+    dummy_message_writer: DummyMessageWriter,
+    binary_messages: List[Message],
 ) -> PipelineBuilder:
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)
