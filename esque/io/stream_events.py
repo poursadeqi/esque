@@ -1,4 +1,3 @@
-from esque.io.exceptions import EsqueIOException
 from esque.io.messages import Message
 
 

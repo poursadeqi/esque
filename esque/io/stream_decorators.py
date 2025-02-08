@@ -1,5 +1,5 @@
 from operator import attrgetter
-from typing import Callable, Dict, Iterable, Iterator, Tuple, TypeVar, Union
+from typing import Callable, Dict, Iterable, Iterator, Tuple, Union
 
 import more_itertools
 

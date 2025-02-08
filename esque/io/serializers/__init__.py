@@ -1,3 +1,4 @@
+# flake8: noqa
 from esque.io.serializers.b64 import Base64Serializer
 from esque.io.serializers.base import DataSerializer
 from esque.io.serializers.json import JsonSerializer

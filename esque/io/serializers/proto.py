@@ -1,7 +1,7 @@
 import dataclasses
 import importlib
 import sys
-from typing import Any, Optional, Type, Union
+from typing import Optional, Type, Union
 
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message

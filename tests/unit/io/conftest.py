@@ -2,7 +2,7 @@ import dataclasses
 import datetime
 import random
 from string import ascii_letters
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 from pytest_cases import fixture
 
@@ -205,9 +205,9 @@ def dummy_message_writer() -> DummyMessageWriter:
 
 @fixture
 def prepared_builder(
-        dummy_message_reader: DummyMessageReader,
-        dummy_message_writer: DummyMessageWriter,
-        binary_messages: List[Message],
+    dummy_message_reader: DummyMessageReader,
+    dummy_message_writer: DummyMessageWriter,
+    binary_messages: List[Message],
 ) -> PipelineBuilder:
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)

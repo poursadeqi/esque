@@ -1,7 +1,7 @@
 import datetime
 import json
 from dataclasses import dataclass
-from typing import IO, Any, Dict, Optional, Union
+from typing import IO, Any, Dict, Optional
 
 from rich.console import Console
 

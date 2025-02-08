@@ -4,7 +4,6 @@ from typing import Any, Callable, Generator, List
 
 import confluent_kafka
 import pytest
-from _pytest.tmpdir import TempPathFactory
 from click.testing import CliRunner
 from confluent_kafka.cimpl import Consumer, TopicPartition
 from pytest_cases import fixture

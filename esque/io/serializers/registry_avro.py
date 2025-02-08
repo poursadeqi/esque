@@ -1,3 +1,4 @@
+# flake8: noqa
 import dataclasses
 import functools
 import hashlib

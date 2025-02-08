@@ -1,4 +1,3 @@
-import base64
 import dataclasses
 import datetime
 from typing import List, NamedTuple, Optional, Union

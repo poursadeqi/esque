@@ -2,7 +2,7 @@ import enum
 import functools
 from abc import ABC, abstractmethod
 from contextlib import closing
-from typing import Callable, Iterable, List, NamedTuple, Optional, Union
+from typing import Callable, Iterable, List, NamedTuple, Optional
 
 from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState
 from esque.io.handlers.base import BaseHandler
