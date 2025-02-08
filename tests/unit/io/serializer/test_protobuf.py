@@ -63,6 +63,6 @@ def test_proto_deserializer(serializer, b64, expected):
 
 
 @parametrize_with_cases(argnames=("b64", "input"), prefix="proto_cases", cases=".")
-def test_proto_deserializer(serializer, b64, input: dict):
+def test_proto_serializer(serializer, b64, input: dict):
     actual_result = serializer.serialize(input)
     assert actual_result == base64.b64decode(b64)
