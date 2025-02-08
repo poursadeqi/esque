@@ -10,6 +10,7 @@ import fastavro
 @dataclasses.dataclass
 class AvroType:
     avro_schema: Dict
+    id: int = None
 
     def __hash__(self) -> int:
         data_bytes: bytes = json.dumps(self.avro_schema, sort_keys=True).encode(encoding="utf-8")

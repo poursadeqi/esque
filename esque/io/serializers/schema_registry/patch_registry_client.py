@@ -4,13 +4,8 @@ import pathlib
 import urllib
 
 from esque.io.exceptions import EsqueIONoSuchSchemaException
-from esque.io.serializers.avro.type import AvroType
-from esque.io.serializers.registry_avro import (
-    SCHEMA_REGISTRY_CLIENT_SCHEME_MAP,
-    IndexData,
-    RegistryAvroSerializerConfig,
-    SchemaRegistryClient,
-)
+from esque.io.serializers.registry_avro import IndexData, RegistryAvroSerializerConfig, SchemaRegistryClient
+from esque.io.serializers.schema_registry.type import AvroType
 
 
 class PathSchemaRegistryClient(SchemaRegistryClient):
@@ -31,7 +26,7 @@ class PathSchemaRegistryClient(SchemaRegistryClient):
     def _path_for_id(self, schema_id: int) -> pathlib.Path:
         return self._base_path / f"schema_{schema_id:03}.avsc"
 
-    def get_or_create_id_for_avro_type(self, avro_type: "AvroType") -> int:
+    def get_or_create_id_with_version(self, avro_type: "AvroType") -> int:
         # JSON doesn't support int keys, so we need to make them strings here
         type_hash = str(hash(avro_type))
         if type_hash in self._index_data:
@@ -68,6 +63,3 @@ class PathSchemaRegistryClient(SchemaRegistryClient):
     @classmethod
     def from_config(cls, config: "RegistryAvroSerializerConfig") -> "PathSchemaRegistryClient":
         return cls(config.schema_registry_uri)
-
-
-SCHEMA_REGISTRY_CLIENT_SCHEME_MAP["path"] = PathSchemaRegistryClient

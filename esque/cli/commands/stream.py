@@ -18,7 +18,7 @@ from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.json import JsonSerializerConfig
 from esque.io.serializers.proto import ProtoSerializer, ProtoSerializerConfig
 from esque.io.serializers.raw import RawSerializer
-from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
+from esque.io.serializers.schema_registry import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.serializers.struct import StructSerializer, StructSerializerConfig
 from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_timestamp, yield_only_matching_messages
@@ -136,13 +136,13 @@ class ConsumeOptions:
     "--output-key-serializer",
     type=click.Choice(["str", "b64", "raw", "avro", "proto", "struct"], case_sensitive=False),
     help="Specify deserialization for keys",
-    default="str",
+    default="raw",
 )
 @click.option(
     "--output-value-serializer",
     type=click.Choice(["str", "b64", "raw", "avro", "proto", "struct"], case_sensitive=False),
     help="Specify deserialization for keys",
-    default="str",
+    default="raw",
 )
 @click.option(
     "-c",

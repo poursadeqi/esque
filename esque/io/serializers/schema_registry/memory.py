@@ -2,12 +2,9 @@ import itertools
 from typing import ClassVar, Dict, Iterator
 
 from esque.io.exceptions import EsqueIONoSuchSchemaException
-from esque.io.serializers.avro.type import AvroType
-from esque.io.serializers.registry_avro import (
-    SCHEMA_REGISTRY_CLIENT_SCHEME_MAP,
-    RegistryAvroSerializerConfig,
-    SchemaRegistryClient,
-)
+from esque.io.serializers.schema_registry import SchemaRegistryClient
+from esque.io.serializers.schema_registry.config import RegistryAvroSerializerConfig
+from esque.io.serializers.schema_registry.type import AvroType
 
 
 class InMemorySchemaRegistryClient(SchemaRegistryClient):
@@ -24,7 +21,7 @@ class InMemorySchemaRegistryClient(SchemaRegistryClient):
 
         return self._avro_types_by_id[schema_id]
 
-    def get_or_create_id_for_avro_type(self, avro_type: "AvroType") -> int:
+    def get_or_create_id_with_version(self, avro_type: "AvroType") -> int:
         if avro_type in self._ids_by_avro_type:
             return self._ids_by_avro_type[avro_type]
         else:
@@ -39,6 +36,3 @@ class InMemorySchemaRegistryClient(SchemaRegistryClient):
         if hostname not in cls._IN_MEMORY_REGISTRIES:
             cls._IN_MEMORY_REGISTRIES[hostname] = cls()
         return cls._IN_MEMORY_REGISTRIES[hostname]
-
-
-SCHEMA_REGISTRY_CLIENT_SCHEME_MAP["memory"] = InMemorySchemaRegistryClient

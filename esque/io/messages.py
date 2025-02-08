@@ -2,15 +2,13 @@ import dataclasses
 import datetime
 from typing import List, NamedTuple, Optional, Union
 
-from esque.io.serializers.registry_avro import AvroType
-
 
 class MessageHeader(NamedTuple):
     key: str
     value: Optional[str]
 
 
-PrimaryTypes = Union[dict, str, bytes, AvroType, None]
+PrimaryTypes = Union[dict, str, bytes, None]
 
 
 def now_utc() -> datetime.datetime:
@@ -21,6 +19,8 @@ def now_utc() -> datetime.datetime:
 class Message:
     key: PrimaryTypes
     value: PrimaryTypes
+    key_version: str = ""
+    value_version: str = ""
     partition: int = -1
     offset: int = -1
     timestamp: datetime.datetime = dataclasses.field(default_factory=now_utc)

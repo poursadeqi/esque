@@ -6,7 +6,7 @@ from esque.io.serializers import (
     StringSerializer,
 )
 from esque.io.serializers.json import JsonSerializerConfig
-from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
+from esque.io.serializers.schema_registry import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 
 

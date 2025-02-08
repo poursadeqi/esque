@@ -54,7 +54,7 @@ def schema_registry_client(registry_avro_config: RegistryAvroSerializerConfig) -
 
 @fixture
 def schema_id(avro_type: AvroType, schema_registry_client: SchemaRegistryClient) -> int:
-    return schema_registry_client.get_or_create_id_for_avro_type(avro_type)
+    return schema_registry_client.get_or_create_id_with_version(avro_type)
 
 
 @fixture
@@ -88,16 +88,16 @@ def test_registry_client_same_schema_same_id(
     registry_avro_config: RegistryAvroSerializerConfig, avro_type: PrimaryTypes
 ):
     client1 = SchemaRegistryClient.from_config(registry_avro_config)
-    schema_id1 = client1.get_or_create_id_for_avro_type(avro_type)
+    schema_id1 = client1.get_or_create_id_with_version(avro_type)
 
     client2 = SchemaRegistryClient.from_config(registry_avro_config)
-    schema_id2 = client2.get_or_create_id_for_avro_type(avro_type)
+    schema_id2 = client2.get_or_create_id_with_version(avro_type)
 
     assert schema_id1 == schema_id2
 
 
 def test_registry_client_schema_retrieval(schema_registry_client: SchemaRegistryClient, avro_type: PrimaryTypes):
-    schema_id = schema_registry_client.get_or_create_id_for_avro_type(avro_type)
+    schema_id = schema_registry_client.get_or_create_id_with_version(avro_type)
     actual_type = schema_registry_client.get_avro_type_by_id(schema_id)
 
     assert avro_type == actual_type
@@ -113,7 +113,7 @@ def test_avro_deserialize(
 def test_avro_serialize(
     avro_serialized_data: bytes, registry_avro_serializer: RegistryAvroSerializer, deserialized_data: Any
 ):
-    actual_serialized_message: Any = registry_avro_serializer.serialize(deserialized_data)
+    actual_serialized_message: Any = registry_avro_serializer.serialize(deserialized_data, "")
     assert actual_serialized_message == avro_serialized_data
 
 
@@ -122,7 +122,7 @@ def test_from_config_not_implemented():
         def get_avro_type_by_id(self, id: int) -> "AvroType":
             return AvroType({})
 
-        def get_or_create_id_for_avro_type(self, avro_type: "AvroType") -> int:
+        def get_or_create_id_with_version(self, avro_type: "AvroType") -> int:
             return 42
 
     with mock.patch.dict(SCHEMA_REGISTRY_CLIENT_SCHEME_MAP, {"dummy": SchemaRegistryClientSubclassA}):
@@ -138,7 +138,7 @@ def test_from_config_implemented():
         def get_avro_type_by_id(self, id: int) -> "AvroType":
             return AvroType({})
 
-        def get_or_create_id_for_avro_type(self, avro_type: "AvroType") -> int:
+        def get_or_create_id_with_version(self, avro_type: "AvroType") -> int:
             return 42
 
         @classmethod

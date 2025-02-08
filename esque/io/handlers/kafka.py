@@ -119,7 +119,7 @@ class KafkaHandler(BaseHandler):
             partition_arg["partition"] = partition
         self._get_producer().produce(
             topic=self.config.topic_name,
-            value=self.config.write_serializer.value.serialize(message.value),
+            value=self.config.write_serializer.value.serialize(message.value, message.value_version),
             key=self.config.write_serializer.key.serialize(message.key),
             headers=self._io_to_confluent_headers(message.headers),
             timestamp=self._io_to_confluent_timestamp(message.timestamp),

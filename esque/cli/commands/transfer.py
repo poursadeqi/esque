@@ -10,7 +10,7 @@ from esque.io.handlers.kafka import KafkaHandler, KafkaHandlerConfig
 from esque.io.pipeline import PipelineBuilder
 from esque.io.serializers import Base64Serializer, RegistryAvroSerializer, StringSerializer
 from esque.io.serializers.base import MessageSerializer
-from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
+from esque.io.serializers.schema_registry import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.stream_decorators import event_counter, yield_only_matching_messages
 from esque.resources.topic import Topic

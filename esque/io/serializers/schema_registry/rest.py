@@ -5,12 +5,8 @@ from typing import Dict, Optional
 import requests
 
 from esque.io.exceptions import EsqueIOSerializerConfigException
-from esque.io.serializers.avro.type import AvroType
-from esque.io.serializers.registry_avro import (
-    SCHEMA_REGISTRY_CLIENT_SCHEME_MAP,
-    RegistryAvroSerializerConfig,
-    SchemaRegistryClient,
-)
+from esque.io.serializers.schema_registry import RegistryAvroSerializerConfig, SchemaRegistryClient
+from esque.io.serializers.schema_registry.type import AvroType
 
 
 class RestSchemaRegistryClient(SchemaRegistryClient):
@@ -28,7 +24,7 @@ class RestSchemaRegistryClient(SchemaRegistryClient):
         return AvroType(avro_schema=schema)
 
     @functools.lru_cache(maxsize=512)
-    def get_or_create_id_for_avro_type(self, avro_type: "AvroType") -> int:
+    def get_or_create_id_with_version(self, avro_type: "AvroType") -> int:
         self._assert_subject_valid()
         schema_id = self._try_get_existing_schema_id_from_subject(avro_type)
 
@@ -62,7 +58,3 @@ class RestSchemaRegistryClient(SchemaRegistryClient):
     @classmethod
     def from_config(cls, config: "RegistryAvroSerializerConfig") -> "RestSchemaRegistryClient":
         return cls(registry_url=config.schema_registry_uri, subject=config.schema_subject)
-
-
-SCHEMA_REGISTRY_CLIENT_SCHEME_MAP["http"] = RestSchemaRegistryClient
-SCHEMA_REGISTRY_CLIENT_SCHEME_MAP["https"] = RestSchemaRegistryClient
