@@ -1,5 +1,5 @@
 import time
-from typing import Tuple, Any, Generator
+from typing import Any, Generator, Tuple
 
 import pytest
 from click.testing import CliRunner
@@ -35,8 +35,9 @@ def target_topic_consumer(unittest_config: Config, target_topic: Tuple[str, int]
 
 
 @fixture
-def target_topic_avro_consumer(unittest_config: Config, target_topic: Tuple[str, int]) -> Generator[
-    AvroConsumer, Any, None]:
+def target_topic_avro_consumer(
+    unittest_config: Config, target_topic: Tuple[str, int]
+) -> Generator[AvroConsumer, Any, None]:
     consumer = AvroConsumer(
         {
             "group.id": "asdf",
@@ -52,16 +53,17 @@ def target_topic_avro_consumer(unittest_config: Config, target_topic: Tuple[str,
 
 @pytest.mark.integration
 def test_transfer_plain_text_message_using_cli_pipe(
-        producer: ConfluentProducer,
-        target_topic_consumer: Consumer,
-        source_topic: Tuple[str, int],
-        target_topic: Tuple[str, int],
-        non_interactive_cli_runner: CliRunner,
+    producer: ConfluentProducer,
+    target_topic_consumer: Consumer,
+    source_topic: Tuple[str, int],
+    target_topic: Tuple[str, int],
+    non_interactive_cli_runner: CliRunner,
 ):
     expected_messages = produce_text_test_messages(topic_name=source_topic[0], producer=producer)
 
     result1 = non_interactive_cli_runner.invoke(
-        esque, args=[
+        esque,
+        args=[
             "stream",
             "--input-topic",
             source_topic[0],
@@ -71,18 +73,14 @@ def test_transfer_plain_text_message_using_cli_pipe(
             "str",
             "--input-key-deserializer",
             "str",
-        ], catch_exceptions=False
+        ],
+        catch_exceptions=False,
     )
     non_interactive_cli_runner.invoke(
-        esque, args=[
-            "stream",
-            "--input-source",
-            "stdin",
-            "--output-dest",
-            "kafka",
-            "--output-topic",
-            target_topic[0]],
-        input=result1.output, catch_exceptions=False
+        esque,
+        args=["stream", "--input-source", "stdin", "--output-dest", "kafka", "--output-topic", target_topic[0]],
+        input=result1.output,
+        catch_exceptions=False,
     )
 
     actual_messages = {
@@ -95,16 +93,17 @@ def test_transfer_plain_text_message_using_cli_pipe(
 
 @pytest.mark.integration
 def test_transfer_plain_text_message_with_headers_using_cli_pipe(
-        producer: ConfluentProducer,
-        target_topic_consumer: Consumer,
-        source_topic: Tuple[str, int],
-        target_topic: Tuple[str, int],
-        non_interactive_cli_runner: CliRunner,
+    producer: ConfluentProducer,
+    target_topic_consumer: Consumer,
+    source_topic: Tuple[str, int],
+    target_topic: Tuple[str, int],
+    non_interactive_cli_runner: CliRunner,
 ):
     expected_messages = produce_text_test_messages_with_headers(topic_name=source_topic[0], producer=producer)
 
     result1 = non_interactive_cli_runner.invoke(
-        esque, args=[
+        esque,
+        args=[
             "stream",
             "--input-topic",
             source_topic[0],
@@ -114,18 +113,14 @@ def test_transfer_plain_text_message_with_headers_using_cli_pipe(
             "str",
             "--input-key-deserializer",
             "str",
-        ], catch_exceptions=False
+        ],
+        catch_exceptions=False,
     )
     non_interactive_cli_runner.invoke(
-        esque, args=[
-            "stream",
-            "--input-source",
-            "stdin",
-            "--output-dest",
-            "kafka",
-            "--output-topic",
-            target_topic[0]],
-        input=result1.output, catch_exceptions=False
+        esque,
+        args=["stream", "--input-source", "stdin", "--output-dest", "kafka", "--output-topic", target_topic[0]],
+        input=result1.output,
+        catch_exceptions=False,
     )
 
     actual_messages = {
@@ -138,16 +133,17 @@ def test_transfer_plain_text_message_with_headers_using_cli_pipe(
 
 @pytest.mark.integration
 def test_transfer_binary_message_using_cli_pipe(
-        producer: ConfluentProducer,
-        target_topic_consumer: Consumer,
-        source_topic: Tuple[str, int],
-        target_topic: Tuple[str, int],
-        non_interactive_cli_runner,
+    producer: ConfluentProducer,
+    target_topic_consumer: Consumer,
+    source_topic: Tuple[str, int],
+    target_topic: Tuple[str, int],
+    non_interactive_cli_runner,
 ):
     expected_messages = produce_binary_test_messages(topic_name=source_topic[0], producer=producer)
 
     result1 = non_interactive_cli_runner.invoke(
-        esque, args=[
+        esque,
+        args=[
             "stream",
             "--input-topic",
             source_topic[0],
@@ -160,11 +156,13 @@ def test_transfer_binary_message_using_cli_pipe(
             "--output-key-serializer",
             "b64",
             "--output-value-serializer",
-            "b64"
-        ], catch_exceptions=False
+            "b64",
+        ],
+        catch_exceptions=False,
     )
     non_interactive_cli_runner.invoke(
-        esque, args=[
+        esque,
+        args=[
             "stream",
             "--input-source",
             "stdin",
@@ -181,7 +179,8 @@ def test_transfer_binary_message_using_cli_pipe(
             "--output-value-serializer",
             "raw",
         ],
-        input=result1.output, catch_exceptions=False
+        input=result1.output,
+        catch_exceptions=False,
     )
 
     actual_messages = {
@@ -193,12 +192,12 @@ def test_transfer_binary_message_using_cli_pipe(
 
 @pytest.mark.integration
 def test_transfer_plain_text_message_using_file(
-        producer: ConfluentProducer,
-        target_topic_consumer: Consumer,
-        source_topic: Tuple[str, int],
-        target_topic: Tuple[str, int],
-        non_interactive_cli_runner: CliRunner,
-        tmpdir_factory,
+    producer: ConfluentProducer,
+    target_topic_consumer: Consumer,
+    source_topic: Tuple[str, int],
+    target_topic: Tuple[str, int],
+    non_interactive_cli_runner: CliRunner,
+    tmpdir_factory,
 ):
     output_directory = tmpdir_factory.mktemp("output_directory")
     expected_messages = produce_text_test_messages(topic_name=source_topic[0], producer=producer)
@@ -220,12 +219,12 @@ def test_transfer_plain_text_message_using_file(
 
 @pytest.mark.integration
 def test_transfer_plain_text_message_with_headers_using_file(
-        producer: ConfluentProducer,
-        target_topic_consumer: Consumer,
-        source_topic: Tuple[str, int],
-        target_topic: Tuple[str, int],
-        non_interactive_cli_runner: CliRunner,
-        tmpdir_factory,
+    producer: ConfluentProducer,
+    target_topic_consumer: Consumer,
+    source_topic: Tuple[str, int],
+    target_topic: Tuple[str, int],
+    non_interactive_cli_runner: CliRunner,
+    tmpdir_factory,
 ):
     output_directory = tmpdir_factory.mktemp("output_directory")
     expected_messages = produce_text_test_messages_with_headers(topic_name=source_topic[0], producer=producer)
@@ -247,12 +246,12 @@ def test_transfer_plain_text_message_with_headers_using_file(
 
 @pytest.mark.integration
 def test_transfer_binary_message_using_file(
-        producer: ConfluentProducer,
-        target_topic_consumer: Consumer,
-        source_topic: Tuple[str, int],
-        target_topic: Tuple[str, int],
-        non_interactive_cli_runner: CliRunner,
-        tmpdir_factory,
+    producer: ConfluentProducer,
+    target_topic_consumer: Consumer,
+    source_topic: Tuple[str, int],
+    target_topic: Tuple[str, int],
+    non_interactive_cli_runner: CliRunner,
+    tmpdir_factory,
 ):
     output_directory = tmpdir_factory.mktemp("output_directory")
     expected_messages = produce_binary_test_messages(topic_name=source_topic[0], producer=producer)
@@ -275,12 +274,12 @@ def test_transfer_binary_message_using_file(
 
 @pytest.mark.integration
 def test_transfer_avro_message_using_file(
-        avro_producer: AvroProducer,
-        target_topic_avro_consumer: AvroConsumer,
-        source_topic: Tuple[str, int],
-        target_topic: Tuple[str, int],
-        non_interactive_cli_runner: CliRunner,
-        tmpdir_factory,
+    avro_producer: AvroProducer,
+    target_topic_avro_consumer: AvroConsumer,
+    source_topic: Tuple[str, int],
+    target_topic: Tuple[str, int],
+    non_interactive_cli_runner: CliRunner,
+    tmpdir_factory,
 ):
     output_directory = tmpdir_factory.mktemp("output_directory")
     expected_messages = produce_avro_test_messages(topic_name=source_topic[0], avro_producer=avro_producer)
@@ -309,11 +308,11 @@ def test_transfer_avro_message_using_file(
 
 @pytest.mark.integration
 def test_transfer_avro_with_single_command(
-        avro_producer: AvroProducer,
-        target_topic_avro_consumer: AvroConsumer,
-        source_topic: Tuple[str, int],
-        target_topic: Tuple[str, int],
-        non_interactive_cli_runner: CliRunner,
+    avro_producer: AvroProducer,
+    target_topic_avro_consumer: AvroConsumer,
+    source_topic: Tuple[str, int],
+    target_topic: Tuple[str, int],
+    non_interactive_cli_runner: CliRunner,
 ):
     expected_messages = produce_avro_test_messages(topic_name=source_topic[0], avro_producer=avro_producer)
     non_interactive_cli_runner.invoke(
@@ -347,11 +346,11 @@ def test_transfer_avro_with_single_command(
 
 @pytest.mark.integration
 def test_transfer_binary_with_single_command(
-        producer: ConfluentProducer,
-        target_topic_consumer: Consumer,
-        source_topic: Tuple[str, int],
-        target_topic: Tuple[str, int],
-        non_interactive_cli_runner: CliRunner,
+    producer: ConfluentProducer,
+    target_topic_consumer: Consumer,
+    source_topic: Tuple[str, int],
+    target_topic: Tuple[str, int],
+    non_interactive_cli_runner: CliRunner,
 ):
     expected_messages = produce_binary_test_messages(topic_name=source_topic[0], producer=producer)
 
@@ -380,11 +379,11 @@ def test_transfer_binary_with_single_command(
 
 @pytest.mark.integration
 def test_transfer_plain_with_single_command(
-        producer: ConfluentProducer,
-        target_topic_consumer: Consumer,
-        source_topic: Tuple[str, int],
-        target_topic: Tuple[str, int],
-        non_interactive_cli_runner: CliRunner,
+    producer: ConfluentProducer,
+    target_topic_consumer: Consumer,
+    source_topic: Tuple[str, int],
+    target_topic: Tuple[str, int],
+    non_interactive_cli_runner: CliRunner,
 ):
     expected_messages = produce_text_test_messages_with_headers(topic_name=source_topic[0], producer=producer)
 

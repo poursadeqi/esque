@@ -24,9 +24,7 @@ class JsonSerializer(DataSerializer):
         indent = None
         if self.config.indent is not None:
             indent = int(self.config.indent)
-        return json.dumps(data, indent=indent, default=self.field_serializer).encode(
-            encoding=self.config.encoding
-        )
+        return json.dumps(data, indent=indent, default=self.field_serializer).encode(encoding=self.config.encoding)
 
     def deserialize(self, raw_data: Optional[bytes]) -> Union[dict, None]:
         if raw_data is None:

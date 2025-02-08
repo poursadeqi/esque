@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from pytest_cases import fixture
 
 from esque.io.handlers.base import BaseHandler
-from esque.io.messages import Message, MessageHeader, MessagePayload
+from esque.io.messages import Message, MessageHeader
 from esque.io.pipeline import HandlerSerializerMessageReader, HandlerSerializerMessageWriter, PipelineBuilder
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.string import StringSerializer, StringSerializerConfig
@@ -23,7 +23,7 @@ class DummyHandler(BaseHandler):
     def __init__(self, config: DummyHandlerConfig):
         super.__init__()
         self.config = config
-        self._messages: List[Optional[WritableMessage]] = []
+        self._messages: List[Optional[Message]] = []
         self._serializer_configs: Tuple[Dict[str, Any], Dict[str, Any]] = ({}, {})
         self._peof_counter = 0
         self._left_bound = 0
@@ -93,48 +93,48 @@ def dummy_handler() -> DummyHandler:
 def printable_messages() -> List[Message]:
     return [
         Message(
-            key=MessagePayload(payload="foo1"),
-            value=MessagePayload(payload="bar1"),
+            key="foo1",
+            value="bar1",
             partition=0,
             offset=0,
             timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=0, tzinfo=datetime.timezone.utc),
             headers=[MessageHeader("a", "b")],
         ),
         Message(
-            key=MessagePayload(payload="foo2"),
-            value=MessagePayload(payload="bar2"),
+            key="foo2",
+            value="bar2",
             partition=0,
             offset=1,
             timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=1, tzinfo=datetime.timezone.utc),
             headers=[MessageHeader("c", None)],
         ),
         Message(
-            key=MessagePayload(payload="foo3"),
-            value=MessagePayload(payload="bar3"),
+            key="foo3",
+            value="bar3",
             partition=1,
             offset=0,
             timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=2, tzinfo=datetime.timezone.utc),
             headers=[],
         ),
         Message(
-            key=MessagePayload(payload="foo4"),
-            value=MessagePayload(payload="bar4"),
+            key="foo4",
+            value="bar4",
             partition=1,
             offset=1,
             timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=3, tzinfo=datetime.timezone.utc),
             headers=[],
         ),
         Message(
-            key=MessagePayload(payload="foo5"),
-            value=MessagePayload(payload="bar5"),
+            key="foo5",
+            value="bar5",
             partition=1,
             offset=2,
             timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=4, tzinfo=datetime.timezone.utc),
             headers=[],
         ),
         Message(
-            key=MessagePayload(payload="foo6"),
-            value=MessagePayload(payload="bar6"),
+            key="foo6",
+            value="bar6",
             partition=1,
             offset=3,
             timestamp=datetime.datetime(year=2021, month=1, day=1, hour=0, minute=5, tzinfo=datetime.timezone.utc),
@@ -144,8 +144,8 @@ def printable_messages() -> List[Message]:
 
 
 @fixture(scope="session")
-def no_data() -> MessagePayload:
-    return MessagePayload()
+def no_data() -> None:
+    return None
 
 
 @fixture()
@@ -205,9 +205,9 @@ def dummy_message_writer() -> DummyMessageWriter:
 
 @fixture
 def prepared_builder(
-    dummy_message_reader: DummyMessageReader,
-    dummy_message_writer: DummyMessageWriter,
-    binary_messages: List[Message],
+        dummy_message_reader: DummyMessageReader,
+        dummy_message_writer: DummyMessageWriter,
+        binary_messages: List[Message],
 ) -> PipelineBuilder:
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)

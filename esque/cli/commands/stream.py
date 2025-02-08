@@ -16,8 +16,8 @@ from esque.io.serializers import JsonSerializer, RegistryAvroSerializer, StringS
 from esque.io.serializers.b64 import Base64Serializer
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.json import JsonSerializerConfig
-from esque.io.serializers.raw import RawSerializer
 from esque.io.serializers.proto import ProtoSerializer, ProtoSerializerConfig
+from esque.io.serializers.raw import RawSerializer
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
 from esque.io.serializers.struct import StructSerializer, StructSerializerConfig
@@ -112,8 +112,8 @@ class ConsumeOptions:
 @click.option(
     "--last/--first",
     help="Start consuming from the earliest or latest offset in the topic."
-         "Latest means at the end of the topic _not including_ the last message(s),"
-         "so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
+    "Latest means at the end of the topic _not including_ the last message(s),"
+    "so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
     default=False,
 )
 @click.option("--input-key-struct-format", help="Set this flag to set encoding for key", type=str)
@@ -158,8 +158,8 @@ class ConsumeOptions:
 @click.option(
     "--preserve-order",
     help="Preserve the order of messages, regardless of their partition. "
-         "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
-         "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
+    "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
+    "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
     default=False,
     is_flag=True,
 )
@@ -167,7 +167,7 @@ class ConsumeOptions:
     "-p",
     "--pretty-print",
     help="Use multiple lines to represent each kafka message instead of putting every JSON object into a single "
-         "line. Only has an effect when consuming to stdout.",
+    "line. Only has an effect when consuming to stdout.",
     default=False,
     is_flag=True,
 )
@@ -272,12 +272,12 @@ def create_input_handler(read_serializer: MessageSerializer, stream_options: Con
 
 
 def create_key_value_serializer(
-        state: State,
-        key_deserializer: str,
-        key_struct_format: str,
-        val_deserializer: str,
-        val_struct_format: str,
-        consumer_options: ConsumeOptions,
+    state: State,
+    key_deserializer: str,
+    key_struct_format: str,
+    val_deserializer: str,
+    val_struct_format: str,
+    consumer_options: ConsumeOptions,
 ) -> MessageSerializer:
     key_serializer = create_serializer(state, key_deserializer, key_struct_format, consumer_options)
     val_serializer = create_serializer(state, val_deserializer, val_struct_format, consumer_options)
@@ -291,7 +291,7 @@ def create_output_handler(state: State, serializer: MessageSerializer, stream_op
         topic = stream_options.output_topic
         if not topic_controller.topic_exists(stream_options.output_topic):
             if ensure_approval(
-                    f"Topic {topic!r} does not exist, do you want to create it?", no_verify=state.no_verify
+                f"Topic {topic!r} does not exist, do you want to create it?", no_verify=state.no_verify
             ):
                 topic_controller.create_topics([Topic(topic)])
             else:
@@ -305,9 +305,7 @@ def create_output_handler(state: State, serializer: MessageSerializer, stream_op
             )
         )
     return PipeHandler(
-        PipeHandlerConfig(write_serializer=serializer,
-                          file=sys.stdout,
-                          pretty_print=stream_options.pretty_print)
+        PipeHandlerConfig(write_serializer=serializer, file=sys.stdout, pretty_print=stream_options.pretty_print)
     )
 
 

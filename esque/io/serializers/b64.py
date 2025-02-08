@@ -1,6 +1,6 @@
+import re
 from base64 import b64decode, b64encode
 from typing import Optional, Union
-import re
 
 from confluent_kafka.serialization import SerializationError
 
@@ -28,7 +28,7 @@ def is_base64(s: str) -> bool:
         return False
 
     # Check if it only contains valid Base64 characters
-    if not re.fullmatch(r'^[A-Za-z0-9+/]*={0,2}$', s):
+    if not re.fullmatch(r"^[A-Za-z0-9+/]*={0,2}$", s):
         return False
 
     return True
