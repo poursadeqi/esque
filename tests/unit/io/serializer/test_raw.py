@@ -3,8 +3,8 @@ from typing import List
 import pytest
 from pytest_cases import fixture
 
-from esque.io.messages import MessagePayload
-from esque.io.serializers.binary import Base64Serializer
+from esque.io.messages import PrimaryTypes
+from esque.io.serializers.b64 import Base64Serializer
 
 
 @fixture
@@ -18,8 +18,8 @@ def many_expected_bytes() -> List[bytes]:
 
 
 @fixture
-def many_expected_data(many_expected_bytes: List[bytes]) -> List[MessagePayload]:
-    return [MessagePayload(payload=expected_bytes) for expected_bytes in many_expected_bytes]
+def many_expected_data(many_expected_bytes: List[bytes]) -> List[PrimaryTypes]:
+    return [expected_bytes for expected_bytes in many_expected_bytes]
 
 
 def test_raw_serialize(serializer: Base64Serializer, many_expected_bytes, many_expected_data):
@@ -34,11 +34,11 @@ def test_raw_deserialize(serializer: Base64Serializer, many_expected_bytes, many
 
 def test_raw_serialize_raises_on_non_bytes(serializer):
     with pytest.raises(TypeError):
-        serializer.serialize(MessagePayload(payload=1))
+        serializer.serialize(1)
 
 
 def test_raw_serialize_many(serializer: Base64Serializer, many_expected_bytes, many_expected_data):
-    many_actual_bytes = list(serializer.serialize_many(many_expected_data))
+    many_actual_bytes = list(serializer.serialize(many_expected_data))
     assert many_actual_bytes == many_expected_bytes
 
 

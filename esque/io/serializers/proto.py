@@ -33,7 +33,7 @@ class ProtoSerializer(DataSerializer):
         self.config = config
 
     def serialize(self, data: PrimaryTypes) -> Optional[bytes]:
-        raise NotImplementedError
+        raise NotImplementedError("Protobuf serialization is not supported yet.")
 
     def deserialize(self, raw_data: Optional[bytes]) -> Union[dict, None]:
         if raw_data is None:

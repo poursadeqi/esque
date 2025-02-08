@@ -2,7 +2,6 @@ from typing import List
 
 from pytest_cases import fixture
 
-from esque.io.messages import MessagePayload
 from esque.io.serializers.string import StringSerializer, StringSerializerConfig
 
 

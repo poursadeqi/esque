@@ -8,7 +8,7 @@ import pytest
 from pytest_cases import fixture, parametrize_with_cases
 
 from esque.config import Config
-from esque.io.messages import MessagePayload
+from esque.io.messages import PrimaryTypes
 from esque.io.serializers.registry_avro import (
     SCHEMA_REGISTRY_CLIENT_SCHEME_MAP,
     AvroType,
@@ -70,8 +70,8 @@ def avro_type() -> AvroType:
 
 
 @fixture
-def deserialized_data(avro_type) -> MessagePayload:
-    return MessagePayload(payload={"id": "asdf"}, data_type=avro_type)
+def deserialized_data(avro_type) -> PrimaryTypes:
+    return {"id": "asdf"}
 
 
 @fixture
@@ -85,7 +85,7 @@ def registry_avro_serializer(registry_avro_config: RegistryAvroSerializerConfig)
 
 
 def test_registry_client_same_schema_same_id(
-    registry_avro_config: RegistryAvroSerializerConfig, avro_type: MessagePayload
+        registry_avro_config: RegistryAvroSerializerConfig, avro_type: MessagePayload
 ):
     client1 = SchemaRegistryClient.from_config(registry_avro_config)
     schema_id1 = client1.get_or_create_id_for_avro_type(avro_type)
@@ -104,14 +104,14 @@ def test_registry_client_schema_retrieval(schema_registry_client: SchemaRegistry
 
 
 def test_avro_deserialize(
-    avro_serialized_data: bytes, registry_avro_serializer: RegistryAvroSerializer, deserialized_data: Any
+        avro_serialized_data: bytes, registry_avro_serializer: RegistryAvroSerializer, deserialized_data: Any
 ):
     actual_message: Any = registry_avro_serializer.deserialize(avro_serialized_data)
     assert actual_message == deserialized_data
 
 
 def test_avro_serialize(
-    avro_serialized_data: bytes, registry_avro_serializer: RegistryAvroSerializer, deserialized_data: Any
+        avro_serialized_data: bytes, registry_avro_serializer: RegistryAvroSerializer, deserialized_data: Any
 ):
     actual_serialized_message: Any = registry_avro_serializer.serialize(deserialized_data)
     assert actual_serialized_message == avro_serialized_data
