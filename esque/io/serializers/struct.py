@@ -1,30 +1,29 @@
 import dataclasses
 from struct import pack, unpack
-from typing import Optional
+from typing import Optional, Union
 
-from esque.io.messages import MessagePayload
+from esque.io.messages import PrimaryTypes
 from esque.io.serializers.base import DataSerializer
 
 
 @dataclasses.dataclass()
 class StructSerializerConfig:
-    deserializer_struct_format: str = dataclasses.field(init=False)
-    serializer_struct_format: str = dataclasses.field(init=False)
+    deserializer_struct_format: str = None
+    serializer_struct_format: str = None
 
 
 class StructSerializer(DataSerializer):
     def __init__(self, config: StructSerializerConfig):
         self.config = config
 
-    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
+    def deserialize(self, raw_data: Optional[bytes]) -> PrimaryTypes:
         if raw_data is None:
-            return MessagePayload()
-        output = unpack(self.config.deserializer_struct_format, raw_data)[0]
-        return MessagePayload(payload=output)
+            return None
+        return unpack(self.config.deserializer_struct_format, raw_data)[0]
 
-    def serialize(self, data: MessagePayload) -> MessagePayload:
-        if data.is_empty():
-            return MessagePayload(b"")
-        if not isinstance(data.payload, bytes):
-            raise TypeError(f"Data payload must be bytes or bytearray, not {type(data.payload).__name__}!")
-        return MessagePayload(pack(self.config.serializer_struct_format, data.payload))
+    def serialize(self, data: PrimaryTypes) -> Union[bytes, None]:
+        if data is None:
+            return None
+        if not isinstance(data, bytes):
+            raise TypeError(f"Data payload must be bytes or bytearray, not {type(data).__name__}!")
+        return pack(self.config.serializer_struct_format, data)

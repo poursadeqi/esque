@@ -11,7 +11,7 @@ from esque.cli.helpers import ensure_approval
 from esque.cli.options import State, default_options
 from esque.config import PING_TOPIC
 from esque.io.handlers.kafka import KafkaHandler, KafkaHandlerConfig
-from esque.io.messages import Message, MessagePayload
+from esque.io.messages import Message
 from esque.io.stream_decorators import skip_stream_events
 from esque.io.stream_events import StreamEvent
 from esque.resources.topic import Topic
@@ -37,7 +37,7 @@ def ping(state: State, times: int, wait: int):
 
     if not topic_controller.topic_exists(PING_TOPIC):
         if ensure_approval(
-            f"Topic {PING_TOPIC!r} does not exist, do you want to create it?", no_verify=state.no_verify
+                f"Topic {PING_TOPIC!r} does not exist, do you want to create it?", no_verify=state.no_verify
         ):
             topic_config = {
                 "cleanup.policy": "compact,delete",
@@ -70,7 +70,7 @@ def ping(state: State, times: int, wait: int):
             output_handler.write_message(create_ping_stream_event(ping_id))
             msg_received: StreamEvent = next(message_iterator)
 
-            dt_created = dt_from_bytes(msg_received.message.value.payload)
+            dt_created = dt_from_bytes(msg_received.message.value)
             dt_delivered = msg_received.message.timestamp
             dt_received = datetime.datetime.now(tz=datetime.timezone.utc)
 
@@ -110,8 +110,8 @@ def create_ping_stream_event(ping_id) -> StreamEvent:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
     return StreamEvent(
         Message(
-            key=MessagePayload(ping_id),
-            value=MessagePayload(dt_to_bytes(create_time)),
+            key=ping_id,
+            value=dt_to_bytes(create_time),
             partition=-1,
             offset=-1,
             timestamp=create_time,
@@ -124,8 +124,8 @@ def create_tombstone_stream_event(ping_id) -> StreamEvent:
     create_time = datetime.datetime.fromtimestamp(round(time.time(), 3))
     return StreamEvent(
         Message(
-            key=MessagePayload(ping_id),
-            value=MessagePayload(None),
+            key=ping_id,
+            value=None,
             partition=-1,
             offset=-1,
             timestamp=create_time,

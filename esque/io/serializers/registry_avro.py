@@ -14,7 +14,7 @@ import fastavro
 import requests
 
 from esque.io.exceptions import EsqueIONoSuchSchemaException, EsqueIOSerializerConfigException
-from esque.io.messages import MessagePayload
+from esque.io.messages import PrimaryTypes
 from esque.io.serializers.base import DataSerializer
 
 SCHEMA_REGISTRY_CLIENT_SCHEME_MAP: Dict[str, Type["SchemaRegistryClient"]] = {}
@@ -239,22 +239,21 @@ class RegistryAvroSerializer(DataSerializer):
         self.config = config
         self._registry_client = SchemaRegistryClient.from_config(config)
 
-    def serialize(self, data: MessagePayload) -> Optional[bytes]:
+    def serialize(self, data: PrimaryTypes) -> Optional[bytes]:
         avro_type = ensure_avro_type(data.data_type)
         schema_id = self._registry_client.get_or_create_id_for_avro_type(avro_type)
         buffer = io.BytesIO()
         fastavro.schemaless_writer(buffer, avro_type.fastavro_schema, data.payload)
         return create_schema_id_prefix(schema_id) + buffer.getvalue()
 
-    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
+    def deserialize(self, raw_data: Optional[bytes]) -> PrimaryTypes:
         if raw_data is None:
-            return MessagePayload.NO_DATA
+            return None
 
         with io.BytesIO(raw_data) as fake_stream:
             schema_id = get_schema_id_from_prefix(fake_stream.read(5))
             avro_type = self._registry_client.get_avro_type_by_id(schema_id)
-            record = fastavro.schemaless_reader(fake_stream, avro_type.fastavro_schema)
-            return MessagePayload(payload=record)
+            return fastavro.schemaless_reader(fake_stream, avro_type.fastavro_schema)
 
 
 @dataclasses.dataclass

@@ -1,5 +1,5 @@
 from esque.io.serializers import (
-    BinarySerializer,
+    Base64Serializer,
     DataSerializer,
     JsonSerializer,
     RegistryAvroSerializer,
@@ -15,7 +15,7 @@ def case_json_serializer() -> DataSerializer:
 
 
 def case_raw_serializer() -> DataSerializer:
-    return BinarySerializer()
+    return Base64Serializer()
 
 
 def case_registry_avro_serializer() -> DataSerializer:

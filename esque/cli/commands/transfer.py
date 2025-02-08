@@ -8,7 +8,7 @@ from esque.cluster import Cluster
 from esque.config import ESQUE_GROUP_ID
 from esque.io.handlers.kafka import KafkaHandler, KafkaHandlerConfig
 from esque.io.pipeline import PipelineBuilder
-from esque.io.serializers import BinarySerializer, RegistryAvroSerializer, StringSerializer
+from esque.io.serializers import Base64Serializer, RegistryAvroSerializer, StringSerializer
 from esque.io.serializers.base import MessageSerializer
 from esque.io.serializers.registry_avro import RegistryAvroSerializerConfig
 from esque.io.serializers.string import StringSerializerConfig
@@ -202,7 +202,7 @@ def create_input_handler(consumergroup, from_context, topic):
 
 def create_input_serializer(avro, binary, state):
     if binary:
-        input_serializer = BinarySerializer()
+        input_serializer = Base64Serializer()
     elif avro:
         input_serializer = RegistryAvroSerializer(
             RegistryAvroSerializerConfig(schema_registry_uri=state.config.schema_registry)
@@ -223,7 +223,7 @@ def create_output_serializer(avro: bool, binary: bool, topic: str, state: State)
         raise ValueError("Cannot set data to be interpreted as binary AND avro.")
 
     elif binary:
-        key_serializer = BinarySerializer()
+        key_serializer = Base64Serializer()
         value_serializer = key_serializer
 
     elif avro:

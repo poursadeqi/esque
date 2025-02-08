@@ -31,11 +31,12 @@ class PipeHandler(BaseHandler):
         self._console.print_json(
             json.dumps(
                 {
-                    "key": event.message.key.payload,
-                    "value": event.message.value.payload,
+                    "key": self.config.write_serializer.key.serialize(event.message.key),
+                    "value": self.config.write_serializer.value.serialize(event.message.value),
                     "partition": event.message.partition,
                     "offset": event.message.offset,
-                    "timestamp": event.message.timestamp.isoformat(),
+                    "timestamp": event.message.timestamp.timestamp(),
+                    "timestamp_iso": event.message.timestamp.isoformat(),
                     "headers": [{"key": h.key, "value": h.value} for h in event.message.headers],
                 }
             ),

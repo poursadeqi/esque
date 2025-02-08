@@ -187,7 +187,7 @@ def num_partitions(request) -> int:
 
 
 @fixture()
-def topic_factory(confluent_admin_client: AdminClient) -> Callable[[int, str], Tuple[str, int]]:
+def topic_factory(confluent_admin_client: AdminClient) -> Generator[Callable[[int, str], tuple[str, int]], Any, None]:
     created_topics = []
 
     def factory(partitions: int, topic_id: str) -> Tuple[str, int]:

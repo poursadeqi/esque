@@ -2,9 +2,9 @@ import base64
 import dataclasses
 import datetime as dt
 import json
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
-from esque.io.messages import MessagePayload
+from esque.io.messages import PrimaryTypes
 from esque.io.serializers.base import DataSerializer
 
 
@@ -20,18 +20,18 @@ class JsonSerializer(DataSerializer):
         super().__init__()
         self.config = config
 
-    def serialize(self, data: MessagePayload) -> Optional[bytes]:
+    def serialize(self, data: PrimaryTypes) -> Optional[bytes]:
         indent = None
         if self.config.indent is not None:
             indent = int(self.config.indent)
-        return json.dumps(data.payload, indent=indent, default=self.field_serializer).encode(
+        return json.dumps(data, indent=indent, default=self.field_serializer).encode(
             encoding=self.config.encoding
         )
 
-    def deserialize(self, raw_data: Optional[bytes]) -> MessagePayload:
+    def deserialize(self, raw_data: Optional[bytes]) -> Union[dict, None]:
         if raw_data is None:
-            return MessagePayload()
-        return MessagePayload(payload=json.loads(raw_data.decode(self.config.encoding)))
+            return None
+        return json.loads(raw_data.decode(self.config.encoding))
 
     def field_serializer(self, data: Any) -> str:
         if isinstance(data, (dt.datetime, dt.date, dt.time)):
