@@ -60,3 +60,9 @@ def proto_cases_when_type_float_is_set():
 def test_proto_deserializer(serializer, b64, expected):
     actual_result = serializer.deserialize(base64.b64decode(b64))
     assert actual_result == expected
+
+
+@parametrize_with_cases(argnames=("b64", "input"), prefix="proto_cases", cases=".")
+def test_proto_deserializer(serializer, b64, input: dict):
+    actual_result = serializer.serialize(input)
+    assert actual_result == base64.b64decode(b64)
