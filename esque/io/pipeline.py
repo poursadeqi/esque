@@ -1,8 +1,8 @@
-import enum
 import functools
 from abc import ABC, abstractmethod
 from contextlib import closing
-from typing import Callable, Iterable, List, NamedTuple, Optional
+from dataclasses import dataclass
+from typing import Callable, Iterable, List, Optional
 
 from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState
 from esque.io.handlers.base import BaseHandler
@@ -26,12 +26,6 @@ class MessageReader(ABC):
         raise NotImplementedError
 
 
-class _Schemes(NamedTuple):
-    handler_scheme: str
-    key_serializer_scheme: str
-    value_serializer_scheme: str
-
-
 class MessageWriter(ABC):
     @abstractmethod
     def write_many_messages(self, message_stream: Iterable[StreamEvent]):
@@ -49,7 +43,7 @@ class HandlerSerializerMessageReader(MessageReader):
     def __init__(self, handler: BaseHandler):
         self._handler = handler
 
-    def stream(self) -> Iterable[Message]:
+    def stream(self) -> Iterable[StreamEvent]:
         return self._handler.stream()
 
     def seek(self, position: int):
@@ -82,10 +76,10 @@ class Pipeline:
     _stream_decorators: List[Callable[[Iterable], Iterable]]
 
     def __init__(
-        self,
-        input_element: MessageReader,
-        output_element: MessageWriter,
-        stream_decorators: List[Callable[[Iterable], Iterable]],
+            self,
+            input_element: MessageReader,
+            output_element: MessageWriter,
+            stream_decorators: List[Callable[[Iterable], Iterable]],
     ):
         self._input_element = input_element
         self._output_element = output_element
@@ -111,31 +105,14 @@ class Pipeline:
         self._input_element.close()
         self._output_element.close()
 
-
-class _BuilderComponentState(enum.Flag):
-    NOTHING_DEFINED = 0
-    SERIALIZER_DEFINED = enum.auto()
-    HANDLER_DEFINED = enum.auto()
-    READER_WRITER_DEFINED = enum.auto()
-
-    def is_valid(self) -> bool:
-        return self in {
-            _BuilderComponentState.NOTHING_DEFINED,
-            _BuilderComponentState.READER_WRITER_DEFINED,
-            _BuilderComponentState.HANDLER_DEFINED,
-        }
-
-
 class PipelineBuilder:
     _input_handler: Optional[BaseHandler] = None
     _input_serializer: Optional[MessageSerializer] = None
     _message_reader: Optional[MessageReader] = None
-    _input_state: _BuilderComponentState = _BuilderComponentState.NOTHING_DEFINED
 
     _output_handler: Optional[BaseHandler] = None
     _output_serializer: Optional[MessageSerializer] = None
     _message_writer: Optional[MessageWriter] = None
-    _output_state: _BuilderComponentState = _BuilderComponentState.NOTHING_DEFINED
 
     _stream_decorators: List[Callable[[Iterable], Iterable]]
     _start: Optional[int] = None
@@ -154,34 +131,17 @@ class PipelineBuilder:
     def with_input_handler(self, handler: BaseHandler) -> "PipelineBuilder":
         if handler is not None:
             self._input_handler = handler
-            self._input_state |= _BuilderComponentState.HANDLER_DEFINED
-        return self
-
-    def with_message_reader(self, message_reader: MessageReader) -> "PipelineBuilder":
-        if message_reader is not None:
-            self._message_reader = message_reader
-            self._input_state |= _BuilderComponentState.READER_WRITER_DEFINED
         return self
 
     def with_output_handler(self, handler: BaseHandler) -> "PipelineBuilder":
         if handler is not None:
             self._output_handler = handler
-            self._output_state |= _BuilderComponentState.HANDLER_DEFINED
-        return self
-
-    def with_message_writer(self, message_writer: MessageWriter) -> "PipelineBuilder":
-        if message_writer is not None:
-            self._message_writer = message_writer
-            self._output_state |= _BuilderComponentState.READER_WRITER_DEFINED
         return self
 
     def with_stream_decorator(self, decorator: Callable[[Iterable], Iterable]) -> "PipelineBuilder":
         if decorator is not None:
             self._stream_decorators.append(decorator)
         return self
-
-    def add_transformation(self, transformation) -> "PipelineBuilder":
-        raise NotImplementedError
 
     @functools.cached_property
     def _pipeline(self) -> Pipeline:
@@ -196,30 +156,13 @@ class PipelineBuilder:
         return Pipeline(message_reader, message_writer, self._stream_decorators)
 
     def _build_message_reader(self) -> Optional[MessageReader]:
-        if not self._input_state.is_valid():
-            self._handle_invalid_input_state()
-            return
         message_reader = HandlerSerializerMessageReader(self._input_handler)
         if self._start is not None:
             message_reader.seek(self._start)
         return message_reader
 
-    def _handle_invalid_input_state(self) -> None:
-        if _BuilderComponentState.READER_WRITER_DEFINED in self._input_state:
-            self._errors.append("Input reader was supplied.")
-
     def _build_message_writer(self) -> Optional[MessageWriter]:
-        if not self._output_state.is_valid():
-            self._handle_invalid_output_state()
-            return
-
-        if self._output_state == _BuilderComponentState.READER_WRITER_DEFINED:
-            return self._message_writer
         return HandlerSerializerMessageWriter(self._output_handler)
-
-    def _handle_invalid_output_state(self) -> None:
-        if _BuilderComponentState.READER_WRITER_DEFINED in self._output_state:
-            self._errors.append("Output writer was supplied.")
 
     def with_range(self, start: Optional[int] = None, limit: Optional[int] = None):
         self._start = start

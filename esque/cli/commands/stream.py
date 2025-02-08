@@ -1,54 +1,13 @@
-import sys
-from dataclasses import dataclass
-from typing import Optional
-
 import click
 
 from esque.cli.autocomplete import list_consumergroups, list_contexts, list_topics
-from esque.cli.helpers import ensure_approval
 from esque.cli.options import State, default_options
 from esque.cluster import Cluster
-from esque.config import ESQUE_GROUP_ID
-from esque.io.handlers.kafka import KafkaHandler, KafkaHandlerConfig
-from esque.io.handlers.pipe import PipeHandler, PipeHandlerConfig
+from esque.io.handlers.kafka import KafkaHandler
 from esque.io.pipeline import PipelineBuilder
-from esque.io.serializers import JsonSerializer, RegistryAvroSerializer, StringSerializer
-from esque.io.serializers.b64 import Base64Serializer
-from esque.io.serializers.base import MessageSerializer
-from esque.io.serializers.json import JsonSerializerConfig
-from esque.io.serializers.proto import ProtoSerializer, ProtoSerializerConfig
-from esque.io.serializers.raw import RawSerializer
-from esque.io.serializers.schema_registry import RegistryAvroSerializerConfig
-from esque.io.serializers.string import StringSerializerConfig
-from esque.io.serializers.struct import StructSerializer, StructSerializerConfig
 from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_timestamp, yield_only_matching_messages
-from esque.resources.topic import Topic
-
-
-@dataclass
-class ConsumeOptions:
-    input_ctx: str
-    input_source: str
-    input_key_deserializer: str
-    input_value_deserializer: str
-    input_key_struct_format: str
-    input_value_struct_format: str
-    input_topic: str
-    consumer_group: str
-    preserve_order: bool
-
-    output_ctx: str
-    output_dest: str
-    output_topic: str
-    output_key_serializer: str
-    output_value_serializer: str
-    output_key_struct_format: str
-    output_value_struct_format: str
-
-    number: Optional[int]
-    match: str
-    last: bool
-    pretty_print: bool
+from esque.io.stream_pipeline_builder import StreamOptions, create_key_value_serializer, create_input_handler, \
+    create_output_handler
 
 
 @click.command("stream", context_settings={"help_option_names": ["-h", "--help"]})
@@ -112,8 +71,8 @@ class ConsumeOptions:
 @click.option(
     "--last/--first",
     help="Start consuming from the earliest or latest offset in the topic."
-    "Latest means at the end of the topic _not including_ the last message(s),"
-    "so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
+         "Latest means at the end of the topic _not including_ the last message(s),"
+         "so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
     default=False,
 )
 @click.option("--input-key-struct-format", help="Set this flag to set encoding for key", type=str)
@@ -158,8 +117,8 @@ class ConsumeOptions:
 @click.option(
     "--preserve-order",
     help="Preserve the order of messages, regardless of their partition. "
-    "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
-    "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
+         "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
+         "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
     default=False,
     is_flag=True,
 )
@@ -167,7 +126,7 @@ class ConsumeOptions:
     "-p",
     "--pretty-print",
     help="Use multiple lines to represent each kafka message instead of putting every JSON object into a single "
-    "line. Only has an effect when consuming to stdout.",
+         "line. Only has an effect when consuming to stdout.",
     default=False,
     is_flag=True,
 )
@@ -200,7 +159,7 @@ def stream(state: State, **kwargs):
     # Extract binary data from keys (depending on the data this could mess up your console)
     esque consume --stdout --binary TOPIC | jq '.key | @base64d'
     """
-    stream_options = ConsumeOptions(**kwargs)
+    stream_options = StreamOptions(**kwargs)
 
     if not stream_options.input_ctx:
         stream_options.input_ctx = state.config.current_context
@@ -249,90 +208,3 @@ def stream(state: State, **kwargs):
     builder.with_stream_decorator(counter_decorator)
 
     builder.build().run_pipeline()
-
-
-def create_input_handler(read_serializer: MessageSerializer, stream_options: ConsumeOptions):
-    if stream_options.input_source == "stdin":
-        return PipeHandler(
-            PipeHandlerConfig(
-                read_serializer=read_serializer, pretty_print=stream_options.pretty_print, file=sys.stdin
-            )
-        )
-    consumer_group = stream_options.consumer_group
-    if not consumer_group:
-        consumer_group = ESQUE_GROUP_ID
-    return KafkaHandler(
-        KafkaHandlerConfig(
-            read_serializer=read_serializer,
-            context=stream_options.input_ctx,
-            topic=stream_options.input_topic,
-            consumer_group_id=consumer_group,
-        )
-    )
-
-
-def create_key_value_serializer(
-    state: State,
-    key_deserializer: str,
-    key_struct_format: str,
-    val_deserializer: str,
-    val_struct_format: str,
-    consumer_options: ConsumeOptions,
-) -> MessageSerializer:
-    key_serializer = create_serializer(state, key_deserializer, key_struct_format, consumer_options)
-    val_serializer = create_serializer(state, val_deserializer, val_struct_format, consumer_options)
-
-    return MessageSerializer(key=key_serializer, value=val_serializer)
-
-
-def create_output_handler(state: State, serializer: MessageSerializer, stream_options: ConsumeOptions):
-    if stream_options.output_dest == "kafka":
-        topic_controller = Cluster().topic_controller
-        topic = stream_options.output_topic
-        if not topic_controller.topic_exists(stream_options.output_topic):
-            if ensure_approval(
-                f"Topic {topic!r} does not exist, do you want to create it?", no_verify=state.no_verify
-            ):
-                topic_controller.create_topics([Topic(topic)])
-            else:
-                click.echo(click.style("Aborted!", bg="red"))
-                return
-        return KafkaHandler(
-            KafkaHandlerConfig(
-                write_serializer=serializer,
-                context=stream_options.output_ctx,
-                topic=stream_options.output_topic,
-            )
-        )
-    return PipeHandler(
-        PipeHandlerConfig(write_serializer=serializer, file=sys.stdout, pretty_print=stream_options.pretty_print)
-    )
-
-
-def create_serializer(state: State, serializer: str, struct_format: str, consumer_options: ConsumeOptions):
-    if serializer == "json":
-        return JsonSerializer(JsonSerializerConfig())
-    elif serializer == "avro":
-        return RegistryAvroSerializer(RegistryAvroSerializerConfig(schema_registry_uri=state.config.schema_registry))
-    elif serializer == "str":
-        serializer = StringSerializer(StringSerializerConfig())
-    elif serializer == "raw":
-        serializer = RawSerializer()
-    elif serializer == "proto" and consumer_options.input_topic not in state.config.proto:
-        raise RuntimeError(
-            "topic name was not found in proto configs. please add it to the configuration or use raw serializer"
-        )
-    elif serializer == "proto" and consumer_options.input_topic in state.config.proto:
-        proto_cfg = state.config.proto[consumer_options.input_topic]
-        serializer = ProtoSerializer(
-            ProtoSerializerConfig(
-                protoc_py_path=proto_cfg.get("protoc_py_path"),
-                module_name=proto_cfg.get("module_name"),
-                class_name=proto_cfg.get("class_name"),
-            )
-        )
-    elif serializer == "struct":
-        serializer = StructSerializer(StructSerializerConfig(deserializer_struct_format=struct_format))
-    else:
-        serializer = Base64Serializer()
-    return serializer
