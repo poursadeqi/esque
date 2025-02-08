@@ -1,10 +1,13 @@
 import itertools
-from typing import Dict, Iterator, ClassVar
+from typing import ClassVar, Dict, Iterator
 
 from esque.io.exceptions import EsqueIONoSuchSchemaException
 from esque.io.serializers.avro.type import AvroType
-from esque.io.serializers.registry_avro import SchemaRegistryClient, SCHEMA_REGISTRY_CLIENT_SCHEME_MAP, \
-    RegistryAvroSerializerConfig
+from esque.io.serializers.registry_avro import (
+    SCHEMA_REGISTRY_CLIENT_SCHEME_MAP,
+    RegistryAvroSerializerConfig,
+    SchemaRegistryClient,
+)
 
 
 class InMemorySchemaRegistryClient(SchemaRegistryClient):

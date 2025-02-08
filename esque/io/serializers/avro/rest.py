@@ -1,13 +1,16 @@
 import functools
 import json
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 import requests
 
 from esque.io.exceptions import EsqueIOSerializerConfigException
 from esque.io.serializers.avro.type import AvroType
-from esque.io.serializers.registry_avro import SCHEMA_REGISTRY_CLIENT_SCHEME_MAP, RegistryAvroSerializerConfig, \
-    SchemaRegistryClient
+from esque.io.serializers.registry_avro import (
+    SCHEMA_REGISTRY_CLIENT_SCHEME_MAP,
+    RegistryAvroSerializerConfig,
+    SchemaRegistryClient,
+)
 
 
 class RestSchemaRegistryClient(SchemaRegistryClient):
@@ -59,5 +62,7 @@ class RestSchemaRegistryClient(SchemaRegistryClient):
     @classmethod
     def from_config(cls, config: "RegistryAvroSerializerConfig") -> "RestSchemaRegistryClient":
         return cls(registry_url=config.schema_registry_uri, subject=config.schema_subject)
+
+
 SCHEMA_REGISTRY_CLIENT_SCHEME_MAP["http"] = RestSchemaRegistryClient
 SCHEMA_REGISTRY_CLIENT_SCHEME_MAP["https"] = RestSchemaRegistryClient

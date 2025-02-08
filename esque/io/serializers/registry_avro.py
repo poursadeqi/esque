@@ -87,9 +87,9 @@ class RegistryAvroSerializer(DataSerializer):
         self._registry_client = SchemaRegistryClient.from_config(config)
 
     def serialize(self, data: AvroType) -> Optional[bytes]:
-        schema_id = self._registry_client.get_or_create_id_for_avro_type(avro_type)
+        schema_id = self._registry_client.get_or_create_id_for_avro_type(data)
         buffer = io.BytesIO()
-        fastavro.schemaless_writer(buffer, avro_type.fastavro_schema, data)
+        fastavro.schemaless_writer(buffer, data.fastavro_schema, data)
         return create_schema_id_prefix(schema_id) + buffer.getvalue()
 
     def deserialize(self, raw_data: Optional[bytes]) -> PrimaryTypes:

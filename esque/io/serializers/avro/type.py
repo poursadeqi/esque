@@ -2,7 +2,7 @@ import dataclasses
 import functools
 import hashlib
 import json
-from typing import Dict, Any
+from typing import Any, Dict
 
 import fastavro
 

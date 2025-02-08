@@ -5,8 +5,12 @@ import urllib
 
 from esque.io.exceptions import EsqueIONoSuchSchemaException
 from esque.io.serializers.avro.type import AvroType
-from esque.io.serializers.registry_avro import SchemaRegistryClient, IndexData, SCHEMA_REGISTRY_CLIENT_SCHEME_MAP, \
-    RegistryAvroSerializerConfig
+from esque.io.serializers.registry_avro import (
+    SCHEMA_REGISTRY_CLIENT_SCHEME_MAP,
+    IndexData,
+    RegistryAvroSerializerConfig,
+    SchemaRegistryClient,
+)
 
 
 class PathSchemaRegistryClient(SchemaRegistryClient):
