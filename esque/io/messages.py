@@ -2,13 +2,15 @@ import dataclasses
 import datetime
 from typing import List, NamedTuple, Optional, Union
 
+from esque.io.serializers.registry_avro import AvroType
+
 
 class MessageHeader(NamedTuple):
     key: str
     value: Optional[str]
 
 
-PrimaryTypes = Union[dict, list, tuple, str, int, float, bool, bytes, None]
+PrimaryTypes = Union[dict, str, bytes, AvroType, None]
 
 
 def now_utc() -> datetime.datetime:
