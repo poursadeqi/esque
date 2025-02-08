@@ -43,8 +43,7 @@ def consumer_factory(unittest_config: Config) -> Generator[Callable[[str], Consu
 def test_produce_can_create_topic(
         consumer_factory: Callable[[str], Consumer],
         non_interactive_cli_runner: CliRunner,
-        topic_id: str,
-        tmpdir_factory: TempPathFactory,
+        topic_id: str
 ):
     data = json.dumps(dict(key="key1", value="value1")) + "\n"
     result = non_interactive_cli_runner.invoke(
