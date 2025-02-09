@@ -14,7 +14,6 @@ from esque.cli.commands.get import get
 from esque.cli.commands.ping import ping
 from esque.cli.commands.set_ import set_
 from esque.cli.commands.stream import stream
-from esque.cli.commands.transfer import transfer
 from esque.cli.commands.urlencode import urlencode
 from esque.cli.options import State, default_options
 
@@ -55,5 +54,4 @@ esque.add_command(edit)
 esque.add_command(get)
 esque.add_command(ping)
 esque.add_command(set_)
-esque.add_command(transfer)
 esque.add_command(urlencode)

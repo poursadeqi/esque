@@ -79,6 +79,8 @@ class PipeHandler(BaseHandler):
                     deserialized_object.get("timestamp", 0), tz=datetime.timezone.utc
                 ),
                 headers=[MessageHeader(h["key"], h.get("value")) for h in deserialized_object.get("headers", [])],
+                key_version=deserialized_object.get("key_version"),
+                value_version=deserialized_object.get("value_version")
             )
         )
 
