@@ -7,7 +7,7 @@ from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState
 from esque.io.messages import Message
 from esque.io.pipeline import PipelineBuilder
 from esque.io.serializers.base import MessageSerializer
-from esque.io.stream_decorators import skip_stream_events
+from esque.io.stream_decorators import skip_stoppable_events
 from tests.unit.io.conftest import DummyHandler, DummyMessageReader, DummyMessageWriter
 
 
@@ -35,7 +35,7 @@ def test_create_pipeline_with_handler_and_serializer_input(
     builder = PipelineBuilder()
     builder.with_input_handler(dummy_handler)
     builder.with_input_serializer(string_message_serializer)
-    builder.with_stream_decorator(skip_stream_events)
+    builder.with_stream_decorator(skip_stoppable_events)
     pipeline = builder.build()
 
     dummy_handler.set_events(binary_messages)
@@ -65,7 +65,7 @@ def test_create_pipeline_with_message_reader(
 ):
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)
-    builder.with_stream_decorator(skip_stream_events)
+    builder.with_stream_decorator(skip_stoppable_events)
     pipeline = builder.build()
 
     dummy_message_reader.set_messages(binary_messages)

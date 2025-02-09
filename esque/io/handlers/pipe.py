@@ -9,7 +9,7 @@ from esque.io.exceptions import EsqueIOHandlerReadException
 from esque.io.handlers.base import BaseHandler
 from esque.io.handlers.base_config import BaseHandlerConfig
 from esque.io.messages import Message, MessageHeader
-from esque.io.stream_events import PermanentEndOfStream, StreamEvent
+from esque.io.stream_events import PermanentEndOfStream, StreamEvent, StoppableEvent
 
 
 @dataclass()
@@ -50,7 +50,7 @@ class PipeHandler(BaseHandler):
     def read_stream_event(self) -> StreamEvent:
         while True:
             event = self._next_message()
-            if isinstance(event, StreamEvent) or event.offset >= self._left_bound:
+            if isinstance(event, StoppableEvent) or event.message.offset >= self._left_bound:
                 return event
 
     def _next_message(self) -> StreamEvent:

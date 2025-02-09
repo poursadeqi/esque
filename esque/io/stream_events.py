@@ -7,6 +7,11 @@ class StreamEvent:
     def __init__(self, printable_message: Message = None):
         self.message = printable_message
 
+    def __eq__(self, other):
+        if not isinstance(other, StreamEvent):
+            return NotImplemented
+        return type(self) is type(other) and self.message == other.message
+
 
 class StoppableEvent(StreamEvent):
     """

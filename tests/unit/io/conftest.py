@@ -154,9 +154,9 @@ def no_data() -> None:
 
 
 @fixture()
-def partition_count(binary_messages) -> int:
+def partition_count(event_stream_messages) -> int:
     # partitions are 0-based, so add 1 to get the actual amount of partitions
-    return max(m.partition for m in binary_messages) + 1
+    return max(m.message.partition for m in event_stream_messages) + 1
 
 
 @fixture()

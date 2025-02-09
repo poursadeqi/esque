@@ -7,7 +7,7 @@ from esque.io.stream_events import EndOfStream, NthMessageRead, StoppableEvent, 
 from esque.ruleparser.ruleengine import RuleTree
 
 
-def skip_stream_events(stream: Iterable[StreamEvent]) -> Iterable[StreamEvent]:
+def skip_stoppable_events(stream: Iterable[StreamEvent]) -> Iterable[StreamEvent]:
     for elem in stream:
         if isinstance(elem, StreamEvent) and elem.message is None:
             continue
