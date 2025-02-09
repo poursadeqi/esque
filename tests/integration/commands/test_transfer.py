@@ -266,18 +266,29 @@ def test_transfer_avro_with_single_command(
     non_interactive_cli_runner: CliRunner,
 ):
     expected_messages = produce_avro_test_messages(topic_name=source_topic[0], avro_producer=avro_producer)
+
     non_interactive_cli_runner.invoke(
         esque,
         args=[
-            "transfer",
-            "--from-topic",
+            "stream",
+            "--input-source",
+            "kafka",
+            "--output-dest",
+            "kafka",
+            "--input-topic",
             source_topic[0],
-            "--to-topic",
+            "--output-topic",
             target_topic[0],
-            "--avro",
+            "--input-key-deserializer",
+            "avro",
+            "--input-value-deserializer",
+            "avro",
+            "--output-key-serializer",
+            "avro",
+            "--output-value-serializer",
+            "avro",
             "--number",
             "10",
-            "--first",
         ],
         catch_exceptions=False,
     )
@@ -304,19 +315,28 @@ def test_transfer_binary_with_single_command(
     non_interactive_cli_runner: CliRunner,
 ):
     expected_messages = produce_binary_test_messages(topic_name=source_topic[0], producer=producer)
-
     non_interactive_cli_runner.invoke(
         esque,
         args=[
-            "transfer",
-            "--from-topic",
+            "stream",
+            "--input-source",
+            "kafka",
+            "--output-dest",
+            "kafka",
+            "--input-topic",
             source_topic[0],
-            "--to-topic",
+            "--output-topic",
             target_topic[0],
-            "--binary",
+            "--input-key-deserializer",
+            "raw",
+            "--input-value-deserializer",
+            "raw",
+            "--output-key-serializer",
+            "raw",
+            "--output-value-serializer",
+            "raw",
             "--number",
             "10",
-            "--first",
         ],
         catch_exceptions=False,
     )
@@ -340,7 +360,27 @@ def test_transfer_plain_with_single_command(
 
     non_interactive_cli_runner.invoke(
         esque,
-        args=["transfer", "--from-topic", source_topic[0], "--to-topic", target_topic[0], "--number", "10", "--first"],
+        args=[
+            "stream",
+            "--input-source",
+            "kafka",
+            "--output-dest",
+            "kafka",
+            "--input-topic",
+            source_topic[0],
+            "--output-topic",
+            target_topic[0],
+            "--input-key-deserializer",
+            "raw",
+            "--input-value-deserializer",
+            "raw",
+            "--output-key-serializer",
+            "raw",
+            "--output-value-serializer",
+            "raw",
+            "--number",
+            "10",
+        ],
         catch_exceptions=False,
     )
 

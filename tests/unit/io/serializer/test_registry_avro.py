@@ -1,18 +1,15 @@
-import pathlib
 import random
 from string import ascii_lowercase
 from typing import Any
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
 from pytest_cases import fixture, parametrize_with_cases
 
 from esque.config import Config
 from esque.io.messages import PrimaryTypes
-from esque.io.serializers.avro import create_schema_id_prefix, RegistryAvroSerializer
-from esque.io.serializers.schema_registry import RegistryAvroSerializerConfig, SchemaRegistryClient, AvroType, \
-    get_supported_schema
+from esque.io.serializers.avro import RegistryAvroSerializer, create_schema_id_prefix
+from esque.io.serializers.schema_registry import AvroType, RegistryAvroSerializerConfig, SchemaRegistryClient
 
 
 @fixture
@@ -77,7 +74,7 @@ def registry_avro_serializer(registry_avro_config: RegistryAvroSerializerConfig)
 
 
 def test_registry_client_same_schema_same_id(
-        registry_avro_config: RegistryAvroSerializerConfig, avro_type: PrimaryTypes
+    registry_avro_config: RegistryAvroSerializerConfig, avro_type: PrimaryTypes
 ):
     client1 = SchemaRegistryClient.from_config(registry_avro_config)
     schema_id1 = client1.get_or_create_id_with_version(avro_type)
@@ -96,14 +93,14 @@ def test_registry_client_schema_retrieval(schema_registry_client: SchemaRegistry
 
 
 def test_avro_deserialize(
-        avro_serialized_data: bytes, registry_avro_serializer: RegistryAvroSerializer, deserialized_data: Any
+    avro_serialized_data: bytes, registry_avro_serializer: RegistryAvroSerializer, deserialized_data: Any
 ):
     actual_message: Any = registry_avro_serializer.deserialize(avro_serialized_data)
     assert actual_message == deserialized_data
 
 
 def test_avro_serialize(
-        avro_serialized_data: bytes, registry_avro_serializer: RegistryAvroSerializer, deserialized_data: Any
+    avro_serialized_data: bytes, registry_avro_serializer: RegistryAvroSerializer, deserialized_data: Any
 ):
     actual_serialized_message: Any = registry_avro_serializer.serialize(deserialized_data, "")
     assert actual_serialized_message == avro_serialized_data
@@ -117,11 +114,14 @@ def test_from_config_not_implemented():
         def get_or_create_id_with_version(self, avro_type: "AvroType") -> int:
             return 42
 
-    with mock.patch("esque.io.serializers.schema_registry.get_supported_schema",
-                    return_value={"dummy": SchemaRegistryClientSubclassA}):
+    with mock.patch(
+        "esque.io.serializers.schema_registry.get_supported_schema",
+        return_value={"dummy": SchemaRegistryClientSubclassA},
+    ):
         with pytest.raises(AssertionError):
             config: RegistryAvroSerializerConfig = RegistryAvroSerializerConfig(
-                schema_registry_uri="dummy://local.test")
+                schema_registry_uri="dummy://local.test"
+            )
             SchemaRegistryClient.from_config(config)
 
 
@@ -137,10 +137,10 @@ def test_from_config_implemented():
         def from_config(cls, config: "RegistryAvroSerializerConfig") -> "SchemaRegistryClient":
             return cls()
 
-    with mock.patch("esque.io.serializers.schema_registry.get_supported_schema",
-                    return_value={"dummy": SchemaRegistryClientSubclass}):
-        config: RegistryAvroSerializerConfig = RegistryAvroSerializerConfig(
-            schema_registry_uri="dummy://local.test"
-        )
+    with mock.patch(
+        "esque.io.serializers.schema_registry.get_supported_schema",
+        return_value={"dummy": SchemaRegistryClientSubclass},
+    ):
+        config: RegistryAvroSerializerConfig = RegistryAvroSerializerConfig(schema_registry_uri="dummy://local.test")
         client = SchemaRegistryClient.from_config(config)
         assert isinstance(client, SchemaRegistryClientSubclass)

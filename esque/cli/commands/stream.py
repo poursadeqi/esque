@@ -6,8 +6,12 @@ from esque.cluster import Cluster
 from esque.io.handlers.kafka import KafkaHandler
 from esque.io.pipeline import PipelineBuilder
 from esque.io.stream_decorators import event_counter, yield_messages_sorted_by_timestamp, yield_only_matching_messages
-from esque.io.stream_pipeline_builder import StreamOptions, create_key_value_serializer, create_input_handler, \
-    create_output_handler
+from esque.io.stream_pipeline_builder import (
+    StreamOptions,
+    create_input_handler,
+    create_key_value_serializer,
+    create_output_handler,
+)
 
 
 @click.command("stream", context_settings={"help_option_names": ["-h", "--help"]})
@@ -71,8 +75,8 @@ from esque.io.stream_pipeline_builder import StreamOptions, create_key_value_ser
 @click.option(
     "--last/--first",
     help="Start consuming from the earliest or latest offset in the topic."
-         "Latest means at the end of the topic _not including_ the last message(s),"
-         "so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
+    "Latest means at the end of the topic _not including_ the last message(s),"
+    "so if no new data is coming in nothing will be consumed. this is only applicable if input source if kafka",
     default=False,
 )
 @click.option("--input-key-struct-format", help="Set this flag to set encoding for key", type=str)
@@ -117,8 +121,8 @@ from esque.io.stream_pipeline_builder import StreamOptions, create_key_value_ser
 @click.option(
     "--preserve-order",
     help="Preserve the order of messages, regardless of their partition. "
-         "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
-         "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
+    "Order is determined by timestamp and this feature assumes message timestamps are monotonically increasing "
+    "within each partition. Will cause the consumer to stop at temporary ends which means it will ignore new messages.",
     default=False,
     is_flag=True,
 )
@@ -126,7 +130,7 @@ from esque.io.stream_pipeline_builder import StreamOptions, create_key_value_ser
     "-p",
     "--pretty-print",
     help="Use multiple lines to represent each kafka message instead of putting every JSON object into a single "
-         "line. Only has an effect when consuming to stdout.",
+    "line. Only has an effect when consuming to stdout.",
     default=False,
     is_flag=True,
 )

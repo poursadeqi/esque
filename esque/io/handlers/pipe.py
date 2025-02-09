@@ -31,11 +31,10 @@ class PipeHandler(BaseHandler):
         self._console.print_json(
             json.dumps(
                 {
-                    "key": self.config.write_serializer.key.serialize(
-                        event.message.key,
-                        event.message.key_version),
-                    "value": self.config.write_serializer.value.serialize(event.message.value,
-                                                                          event.message.value_version),
+                    "key": self.config.write_serializer.key.serialize(event.message.key, event.message.key_version),
+                    "value": self.config.write_serializer.value.serialize(
+                        event.message.value, event.message.value_version
+                    ),
                     "partition": event.message.partition,
                     "offset": event.message.offset,
                     "timestamp": event.message.timestamp.timestamp(),
@@ -80,7 +79,7 @@ class PipeHandler(BaseHandler):
                 ),
                 headers=[MessageHeader(h["key"], h.get("value")) for h in deserialized_object.get("headers", [])],
                 key_version=deserialized_object.get("key_version"),
-                value_version=deserialized_object.get("value_version")
+                value_version=deserialized_object.get("value_version"),
             )
         )
 

@@ -10,9 +10,9 @@ from esque.cluster import Cluster
 from esque.config import ESQUE_GROUP_ID
 from esque.io.handlers.kafka import KafkaHandler, KafkaHandlerConfig
 from esque.io.handlers.pipe import PipeHandler, PipeHandlerConfig
-from esque.io.serializers import RegistryAvroSerializer, StringSerializer, Base64Serializer
+from esque.io.serializers import Base64Serializer, RegistryAvroSerializer, StringSerializer
 from esque.io.serializers.base import MessageSerializer
-from esque.io.serializers.json import JsonSerializerConfig, JsonSerializer
+from esque.io.serializers.json import JsonSerializer, JsonSerializerConfig
 from esque.io.serializers.proto import ProtoSerializer, ProtoSerializerConfig
 from esque.io.serializers.raw import RawSerializer
 from esque.io.serializers.schema_registry import RegistryAvroSerializerConfig
@@ -48,12 +48,12 @@ class StreamOptions:
 
 
 def create_key_value_serializer(
-        state: State,
-        key_deserializer: str,
-        key_struct_format: str,
-        val_deserializer: str,
-        val_struct_format: str,
-        consumer_options: StreamOptions,
+    state: State,
+    key_deserializer: str,
+    key_struct_format: str,
+    val_deserializer: str,
+    val_struct_format: str,
+    consumer_options: StreamOptions,
 ) -> MessageSerializer:
     key_serializer = create_serializer(state, key_deserializer, key_struct_format, consumer_options)
     val_serializer = create_serializer(state, val_deserializer, val_struct_format, consumer_options)
@@ -96,7 +96,7 @@ def create_output_handler(state: State, serializer: MessageSerializer, stream_op
         topic = stream_options.output_topic
         if not topic_controller.topic_exists(stream_options.output_topic):
             if ensure_approval(
-                    f"Topic {topic!r} does not exist, do you want to create it?", no_verify=state.no_verify
+                f"Topic {topic!r} does not exist, do you want to create it?", no_verify=state.no_verify
             ):
                 topic_controller.create_topics([Topic(topic)])
             else:

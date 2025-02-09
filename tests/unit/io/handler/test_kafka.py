@@ -9,7 +9,7 @@ from pytest_cases import fixture
 
 from esque.io.handlers.kafka import KafkaHandler, KafkaHandlerConfig
 from esque.io.messages import Message
-from esque.io.stream_events import TemporaryEndOfPartition
+from esque.io.stream_events import StreamEvent, TemporaryEndOfPartition
 
 
 @fixture(autouse=True)
@@ -48,10 +48,14 @@ def kafka_handler(unittest_config, topic_id: str, request):
 
 
 def test_write_single_message(
-    producer_cls_mock: Type[Producer], binary_messages: List[Message], kafka_handler: KafkaHandler, topic_id: str
+    producer_cls_mock: Type[Producer],
+    event_stream_messages: List[StreamEvent],
+    kafka_handler: KafkaHandler,
+    topic_id: str,
 ):
-    message = binary_messages[0]
-    kafka_handler.write_message(message)
+    event = event_stream_messages[0]
+    message = event.message
+    kafka_handler.write_message(event)
 
     producer_mock: Producer = producer_cls_mock(config={})
     producer_mock.produce.assert_called_once_with(
@@ -71,12 +75,16 @@ def test_write_single_message(
 
 
 def test_write_many_messages(
-    producer_cls_mock: Type[Producer], binary_messages: List[Message], kafka_handler: KafkaHandler, topic_id: str
+    producer_cls_mock: Type[Producer],
+    event_stream_messages: List[StreamEvent],
+    kafka_handler: KafkaHandler,
+    topic_id: str,
 ):
-    kafka_handler.write_many_messages(binary_messages)
+    kafka_handler.write_many_messages(event_stream_messages)
 
     producer_mock: Producer = producer_cls_mock(config={})
-    for message in binary_messages:
+    for event in event_stream_messages:
+        message = event.message
         producer_mock.produce.assert_any_call(
             key=message.key,
             value=message.value,
@@ -94,10 +102,13 @@ def test_write_many_messages(
 
 
 def test_read_message(
-    binary_messages: List[Message], consumer_cls_mock: Type[Consumer], topic_id: str, kafka_handler: KafkaHandler
+    event_stream_messages: List[StreamEvent],
+    consumer_cls_mock: Type[Consumer],
+    topic_id: str,
+    kafka_handler: KafkaHandler,
 ):
-    message = binary_messages[0]
-    confluent_message = binary_message_to_confluent_message(message, topic_id)
+    message = event_stream_messages[0].message
+    confluent_message = message_to_confluent_message(message, topic_id)
     consumer_mock = consumer_cls_mock({})
     consumer_mock.poll.return_value = confluent_message
 
@@ -105,22 +116,28 @@ def test_read_message(
 
 
 def test_read_many_messages(
-    binary_messages: List[Message], consumer_cls_mock: Type[Consumer], topic_id: str, kafka_handler: KafkaHandler
+    event_stream_messages: List[StreamEvent],
+    consumer_cls_mock: Type[Consumer],
+    topic_id: str,
+    kafka_handler: KafkaHandler,
 ):
-    confluent_messages = [binary_message_to_confluent_message(message, topic_id) for message in binary_messages]
+    confluent_messages = [message_to_confluent_message(event.message, topic_id) for event in event_stream_messages]
     consumer_mock = consumer_cls_mock({})
     consumer_mock.poll.side_effect = confluent_messages
 
     # make sure message_stream doesn't yield less than len(binary_message) items
     message_stream = itertools.chain(kafka_handler.message_stream(), itertools.repeat(None))
-    for expected_message, actual_message in zip(binary_messages, message_stream):
-        assert expected_message == actual_message
+    for expected_message, actual_message in zip(event_stream_messages, message_stream):
+        assert expected_message.message == actual_message.message
 
 
 def test_temporary_end_of_stream_events_non_streaming(
-    binary_messages: List[Message], consumer_cls_mock: Type[Consumer], topic_id: str, kafka_handler: KafkaHandler
+    event_stream_messages: List[StreamEvent],
+    consumer_cls_mock: Type[Consumer],
+    topic_id: str,
+    kafka_handler: KafkaHandler,
 ):
-    partitions = set(msg.partition for msg in binary_messages)
+    partitions = set(event.message.partition for event in event_stream_messages)
     consumer_mock = consumer_cls_mock({})
 
     poll_return_values: List[Optional[Mock]] = [
@@ -140,9 +157,12 @@ def test_temporary_end_of_stream_events_non_streaming(
 
 
 def test_temporary_end_of_stream_events_streaming(
-    binary_messages: List[Message], consumer_cls_mock: Type[Consumer], topic_id: str, kafka_handler: KafkaHandler
+    event_stream_messages: List[StreamEvent],
+    consumer_cls_mock: Type[Consumer],
+    topic_id: str,
+    kafka_handler: KafkaHandler,
 ):
-    partitions = set(msg.partition for msg in binary_messages)
+    partitions = set(event.message.partition for event in event_stream_messages)
     consumer_mock = consumer_cls_mock({})
 
     poll_return_values: List[Optional[Mock]] = [
@@ -179,7 +199,7 @@ def confluent_eof_message(topic_id: str, partition: int, offset: int):
     return confluent_message
 
 
-def binary_message_to_confluent_message(message: Message, topic_id: str):
+def message_to_confluent_message(message: Message, topic_id: str):
     confluent_message = Mock()
     confluent_message.key.return_value = message.key
     confluent_message.value.return_value = message.value

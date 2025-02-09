@@ -2,7 +2,7 @@ import pytest
 from pytest_cases import fixture
 
 from esque.io.exceptions import EsqueIONoSuchSchemaException
-from esque.io.serializers.schema_registry import SchemaRegistryClient, AvroType
+from esque.io.serializers.schema_registry import AvroType, SchemaRegistryClient
 from esque.io.serializers.schema_registry.memory import InMemorySchemaRegistryClient
 
 

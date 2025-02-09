@@ -1,7 +1,6 @@
 import functools
 from abc import ABC, abstractmethod
 from contextlib import closing
-from dataclasses import dataclass
 from typing import Callable, Iterable, List, Optional
 
 from esque.io.exceptions import EsqueIOInvalidPipelineBuilderState
@@ -76,10 +75,10 @@ class Pipeline:
     _stream_decorators: List[Callable[[Iterable], Iterable]]
 
     def __init__(
-            self,
-            input_element: MessageReader,
-            output_element: MessageWriter,
-            stream_decorators: List[Callable[[Iterable], Iterable]],
+        self,
+        input_element: MessageReader,
+        output_element: MessageWriter,
+        stream_decorators: List[Callable[[Iterable], Iterable]],
     ):
         self._input_element = input_element
         self._output_element = output_element
@@ -104,6 +103,7 @@ class Pipeline:
     def close(self) -> None:
         self._input_element.close()
         self._output_element.close()
+
 
 class PipelineBuilder:
     _input_handler: Optional[BaseHandler] = None

@@ -89,6 +89,11 @@ def dummy_handler() -> DummyHandler:
     return DummyHandler.create_default()
 
 
+@fixture
+def event_stream_messages(messages) -> List[StreamEvent]:
+    return [StreamEvent(msg) for msg in messages]
+
+
 @fixture()
 def messages() -> List[Message]:
     return [

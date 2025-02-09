@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import Union, Optional
+from typing import Optional, Union
 
 from esque.io import Message
 from esque.io.messages import PrimaryTypes
@@ -17,8 +17,8 @@ class DataSerializer(ABC):
     def deserialize(self, raw: Union[bytes, str, None]) -> PrimaryTypes:
         raise NotImplementedError
 
-    def get_version(self, raw_data: Optional[bytes]) -> dict:
-        return {}
+    def get_version(self, raw_data: Optional[bytes]) -> Union[None, dict]:
+        return None
 
 
 @dataclasses.dataclass()
