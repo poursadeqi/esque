@@ -8,7 +8,7 @@ class MessageHeader(NamedTuple):
     value: Optional[str]
 
 
-PrimaryTypes = Union[dict, str, bytes, None]
+PrimaryTypes = Optional[Union[dict, str, bytes]]
 
 
 def now_utc() -> datetime.datetime:

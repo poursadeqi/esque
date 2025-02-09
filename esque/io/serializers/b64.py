@@ -14,11 +14,11 @@ class Base64Serializer(DataSerializer):
             return None
         return b64encode(data).decode("UTF-8")
 
-    def deserialize(self, raw_data: Optional[str]) -> Union[bytes, None]:
-        if not is_base64(raw_data):
-            raise SerializationError("b64 deserializer expect to get a base64 encoded string")
+    def deserialize(self, raw_data: Optional[str]) -> Optional[bytes]:
         if raw_data is None:
             return None
+        if not is_base64(raw_data):
+            raise SerializationError("b64 deserializer expect to get a base64 encoded string")
         return b64decode(raw_data, validate=True)
 
 
