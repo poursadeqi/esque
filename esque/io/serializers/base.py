@@ -8,7 +8,9 @@ from esque.io.messages import PrimaryTypes
 
 class DataSerializer(ABC):
     @abstractmethod
-    def serialize(self, data: PrimaryTypes, version: str = "") -> Union[bytes, str, None]:
+    def serialize(self, data: PrimaryTypes, version=None) -> Union[bytes, str, None]:
+        if version is None:
+            version = {}
         raise NotImplementedError
 
     @abstractmethod
@@ -17,6 +19,7 @@ class DataSerializer(ABC):
 
     def get_version(self, raw_data: Optional[bytes]) -> dict:
         return {}
+
 
 @dataclasses.dataclass()
 class MessageSerializer:

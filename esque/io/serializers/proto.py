@@ -32,7 +32,7 @@ class ProtoSerializer(DataSerializer):
     def __init__(self, config: ProtoSerializerConfig):
         self.config = config
 
-    def serialize(self, data: PrimaryTypes) -> Optional[bytes]:
+    def serialize(self, data: PrimaryTypes, version=None) -> Optional[bytes]:
         # raise NotImplementedError("Protobuf serialization is not supported yet.")
         if not isinstance(data, dict):
             raise ValueError(f"Protobuf serialization requires a dictionary, got {type(data)}")

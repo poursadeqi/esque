@@ -20,7 +20,7 @@ class JsonSerializer(DataSerializer):
         super().__init__()
         self.config = config
 
-    def serialize(self, data: PrimaryTypes) -> Optional[str]:
+    def serialize(self, data: PrimaryTypes, **kwargs) -> Optional[str]:
         indent = None
         if self.config.indent is not None:
             indent = int(self.config.indent)

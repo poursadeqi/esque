@@ -14,7 +14,7 @@ class StringSerializer(DataSerializer):
     def __init__(self, config: StringSerializerConfig):
         self.config = config
 
-    def serialize(self, data: PrimaryTypes) -> Optional[str]:
+    def serialize(self, data: PrimaryTypes, version=None) -> Optional[str]:
         return str(data)
 
     def deserialize(self, raw_data: PrimaryTypes) -> str:

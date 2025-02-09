@@ -3,7 +3,7 @@ from esque.io.serializers.base import DataSerializer
 
 
 class RawSerializer(DataSerializer):
-    def serialize(self, data: PrimaryTypes) -> PrimaryTypes:
+    def serialize(self, data: PrimaryTypes, version=None) -> PrimaryTypes:
         return data
 
     def deserialize(self, raw_data: PrimaryTypes) -> PrimaryTypes:

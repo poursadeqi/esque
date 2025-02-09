@@ -21,7 +21,7 @@ class StructSerializer(DataSerializer):
             return None
         return unpack(self.config.deserializer_struct_format, raw_data)[0]
 
-    def serialize(self, data: PrimaryTypes) -> Union[bytes, None]:
+    def serialize(self, data: PrimaryTypes, version=None) -> Union[bytes, None]:
         if data is None:
             return None
         if not isinstance(data, bytes):

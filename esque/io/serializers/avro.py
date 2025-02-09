@@ -30,7 +30,9 @@ class RegistryAvroSerializer(DataSerializer):
         self.config = config
         self._registry_client = SchemaRegistryClient.from_config(config)
 
-    def serialize(self, data: dict, version: str = "") -> Optional[bytes]:
+    def serialize(self, data: dict, version=None) -> Optional[bytes]:
+        if version is None:
+            version = {}
         schema = self._registry_client.get_or_create_id_with_version(version)
         buffer = io.BytesIO()
         fastavro.schemaless_writer(buffer, schema.fastavro_schema, data)
