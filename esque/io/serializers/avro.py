@@ -1,7 +1,7 @@
 # flake8: noqa
 import io
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Union
 
 import fastavro
 
@@ -30,7 +30,9 @@ class RegistryAvroSerializer(DataSerializer):
         self.config = config
         self._registry_client = SchemaRegistryClient.from_config(config)
 
-    def serialize(self, data: dict, version=None) -> Optional[bytes]:
+    def serialize(self, data: Union[dict, None], version=None) -> Optional[bytes]:
+        if data is None:
+            return None
         if version is None:
             version = {}
         schema = self._registry_client.get_avro_type_by_id(version.get("schema_id"))

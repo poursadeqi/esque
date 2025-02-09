@@ -47,7 +47,7 @@ class PipeHandler(BaseHandler):
             indent=2 if self.config.pretty_print else None,
         )
 
-    def read_message(self) -> StreamEvent:
+    def read_stream_event(self) -> StreamEvent:
         while True:
             event = self._next_message()
             if isinstance(event, StreamEvent) or event.offset >= self._left_bound:

@@ -112,7 +112,7 @@ def test_read_message(
     consumer_mock = consumer_cls_mock({})
     consumer_mock.poll.return_value = confluent_message
 
-    assert kafka_handler.read_message() == message
+    assert kafka_handler.read_stream_event().message == message
 
 
 def test_read_many_messages(
@@ -147,11 +147,11 @@ def test_temporary_end_of_stream_events_non_streaming(
     consumer_mock.poll.side_effect = poll_return_values
 
     for partition_id in partitions:
-        stream_event = kafka_handler.read_message()
+        stream_event = kafka_handler.read_stream_event()
         assert isinstance(stream_event, TemporaryEndOfPartition)
         assert stream_event.partition == partition_id
 
-    stream_event = kafka_handler.read_message()
+    stream_event = kafka_handler.read_stream_event()
     assert isinstance(stream_event, TemporaryEndOfPartition)
     assert stream_event.partition == TemporaryEndOfPartition.ALL_PARTITIONS
 

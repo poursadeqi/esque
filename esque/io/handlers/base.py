@@ -48,7 +48,7 @@ class BaseHandler(ABC):
             self.write_message(message)
 
     @abstractmethod
-    def read_message(self) -> Union[Message, StreamEvent]:
+    def read_stream_event(self) -> Union[Message, StreamEvent]:
         """
         Read the next :class:`BinaryMessage` from this handler's source.
         Returns an object of :class:`StreamEvent` to indicate certain events that may happen while reading from the
@@ -66,7 +66,7 @@ class BaseHandler(ABC):
 
     def stream(self) -> Iterable[StreamEvent]:
         while True:
-            msg = self.read_message()
+            msg = self.read_stream_event()
             yield msg
             if isinstance(msg, PermanentEndOfStream):
                 break

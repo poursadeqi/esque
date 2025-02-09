@@ -14,8 +14,10 @@ class StringSerializer(DataSerializer):
     def __init__(self, config: StringSerializerConfig):
         self.config = config
 
-    def serialize(self, data: PrimaryTypes, version=None) -> Optional[str]:
-        return str(data)
+    def serialize(self, data: PrimaryTypes, version=None) -> Optional[bytes]:
+        if data is None:
+            return None
+        return data.encode(encoding=self.config.encoding)
 
     def deserialize(self, raw_data: PrimaryTypes) -> str:
         payload = None

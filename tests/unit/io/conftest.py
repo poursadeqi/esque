@@ -39,7 +39,7 @@ class DummyHandler(BaseHandler):
             return
         self._messages.append(stream_event)
 
-    def read_message(self) -> StreamEvent:
+    def read_stream_event(self) -> StreamEvent:
         while True:
             event = self._next_message()
             if event.message is None or event.message.offset >= self._left_bound:

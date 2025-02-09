@@ -9,7 +9,9 @@ from esque.io.serializers.base import DataSerializer
 
 
 class Base64Serializer(DataSerializer):
-    def serialize(self, data: PrimaryTypes, version=None) -> str:
+    def serialize(self, data: PrimaryTypes, version=None) -> Union[str, None]:
+        if data is None:
+            return None
         return b64encode(data).decode("UTF-8")
 
     def deserialize(self, raw_data: Optional[str]) -> Union[bytes, None]:

@@ -24,4 +24,4 @@ def test_write_read_last_message_incomplete(pipe_handler: PipeHandler, pipe_hand
     pipe_handler_stream.writelines(json_data[:-2])
     pipe_handler_stream.seek(0)
     with pytest.raises(EsqueIOHandlerReadException):
-        _ = pipe_handler.read_message()
+        _ = pipe_handler.read_stream_event()

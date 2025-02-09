@@ -21,6 +21,8 @@ class JsonSerializer(DataSerializer):
         self.config = config
 
     def serialize(self, data: PrimaryTypes, **kwargs) -> Optional[str]:
+        if data is None:
+            return None
         indent = None
         if self.config.indent is not None:
             indent = int(self.config.indent)

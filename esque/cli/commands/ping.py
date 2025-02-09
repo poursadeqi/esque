@@ -98,7 +98,7 @@ def ping(state: State, times: int, wait: int):
 
 
 def key_matches(ping_id: bytes) -> Callable[[StreamEvent], bool]:
-    return lambda event: event.message is not None and event.message.key.payload == ping_id
+    return lambda event: event.message is not None and event.message.key == ping_id
 
 
 def stats(deltas: List[int]) -> str:

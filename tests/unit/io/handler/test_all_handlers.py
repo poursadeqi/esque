@@ -20,7 +20,7 @@ def test_write_read_message(
     messages_retrieved: List[Message] = []
     for _ in range(2):
         while True:
-            actual_message = input_handler.read_message()
+            actual_message = input_handler.read_stream_event()
             if isinstance(actual_message, Message):
                 break
         messages_retrieved.append(actual_message)

@@ -167,7 +167,7 @@ class KafkaHandler(BaseHandler):
             confluent_headers.append((key, value))
         return confluent_headers
 
-    def read_message(self) -> StreamEvent:
+    def read_stream_event(self) -> StreamEvent:
         if not self._assignment_created:
             self._assign()
 
@@ -183,9 +183,9 @@ class KafkaHandler(BaseHandler):
         else:
             self._eof_reached[consumed_message.partition()] = False
 
-            return self._confluent_to_printable_message(consumed_message)
+            return self._confluent_to_stream_event(consumed_message)
 
-    def _confluent_to_printable_message(self, consumed_message: KafkaMessage) -> StreamEvent:
+    def _confluent_to_stream_event(self, consumed_message: KafkaMessage) -> StreamEvent:
         return StreamEvent(
             Message(
                 key=self.config.read_serializer.key.deserialize(consumed_message.key()),
@@ -205,7 +205,7 @@ class KafkaHandler(BaseHandler):
 
     @staticmethod
     def _confluent_to_io_headers(
-        confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]],
+            confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]],
     ) -> List[MessageHeader]:
         io_headers: List[MessageHeader] = []
 
@@ -222,7 +222,7 @@ class KafkaHandler(BaseHandler):
 
     def message_stream(self) -> Iterable[StreamEvent]:
         while True:
-            yield self.read_message()
+            yield self.read_stream_event()
 
     def seek(self, position: int) -> None:
         self._seek = position
