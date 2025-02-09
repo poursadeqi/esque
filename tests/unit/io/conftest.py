@@ -21,9 +21,9 @@ class DummyHandlerConfig:
 
 class DummyHandler(BaseHandler):
     def __init__(self, config: DummyHandlerConfig):
-        super.__init__()
+        super().__init__()
         self.config = config
-        self._messages: List[Optional[Message]] = []
+        self._events: List[Optional[StreamEvent]] = []
         self._serializer_configs: Tuple[Dict[str, Any], Dict[str, Any]] = ({}, {})
         self._peof_counter = 0
         self._left_bound = 0
@@ -37,17 +37,17 @@ class DummyHandler(BaseHandler):
     def write_message(self, stream_event: StreamEvent) -> None:
         if isinstance(stream_event, StreamEvent):
             return
-        self._messages.append(stream_event)
+        self._events.append(stream_event)
 
     def read_stream_event(self) -> StreamEvent:
         while True:
-            event = self._next_message()
+            event = self._next_event()
             if event.message is None or event.message.offset >= self._left_bound:
                 return event
 
-    def _next_message(self) -> StreamEvent:
-        if self._messages:
-            elem = self._messages.pop(0)
+    def _next_event(self) -> StreamEvent:
+        if self._events:
+            elem = self._events.pop(0)
             if elem is None:
                 return TemporaryEndOfPartition("Temporary end of stream")
             return elem
@@ -59,14 +59,14 @@ class DummyHandler(BaseHandler):
             self._peof_counter += 1
             return PermanentEndOfStream("No messages left in memory")
 
-    def get_messages(self) -> List[Message]:
-        return self._messages.copy()
+    def get_events(self) -> List[StreamEvent]:
+        return self._events.copy()
 
-    def set_messages(self, messages: List[Message]):
-        self._messages = messages.copy()
+    def set_events(self, events: List[StreamEvent]):
+        self._events = events.copy()
 
     def insert_temporary_end_of_stream(self, position: int):
-        self._messages.insert(position, None)
+        self._events.insert(position, None)
 
     @classmethod
     def create_default(cls) -> "DummyHandler":
@@ -183,7 +183,7 @@ class DummyMessageReader(HandlerSerializerMessageReader):
         )
 
     def set_messages(self, messages: List[Message]) -> None:
-        self._handler.set_messages(messages)
+        self._handler.set_events(messages)
 
 
 @fixture
@@ -200,7 +200,7 @@ class DummyMessageWriter(HandlerSerializerMessageWriter):
         )
 
     def get_written_messages(self) -> List[Message]:
-        return self._handler.get_messages()
+        return self._handler.get_events()
 
 
 @fixture
@@ -210,9 +210,9 @@ def dummy_message_writer() -> DummyMessageWriter:
 
 @fixture
 def prepared_builder(
-    dummy_message_reader: DummyMessageReader,
-    dummy_message_writer: DummyMessageWriter,
-    binary_messages: List[Message],
+        dummy_message_reader: DummyMessageReader,
+        dummy_message_writer: DummyMessageWriter,
+        binary_messages: List[Message],
 ) -> PipelineBuilder:
     builder = PipelineBuilder()
     builder.with_message_reader(dummy_message_reader)

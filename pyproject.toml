@@ -75,6 +75,10 @@ include_trailing_comma = true
 default_section = "THIRDPARTY"
 known_first_party = ["esque", "tests"]
 
+[tool.pytest.ini_options]
+markers = [
+    "integration: mark a test as an integration test"
+]
 [build-system]
 requires = ["poetry>=1.0.2"]
 build-backend = "poetry.masonry.api"

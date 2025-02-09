@@ -38,7 +38,7 @@ def test_create_pipeline_with_handler_and_serializer_input(
     builder.with_stream_decorator(skip_stream_events)
     pipeline = builder.build()
 
-    dummy_handler.set_messages(binary_messages)
+    dummy_handler.set_events(binary_messages)
 
     assert list(pipeline.decorated_message_stream()) == string_messages
 
@@ -55,7 +55,7 @@ def test_create_pipeline_with_handler_and_serializer_output(
     pipeline = builder.build()
 
     pipeline.write_many_messages(string_messages)
-    assert dummy_handler.get_messages() == binary_messages
+    assert dummy_handler.get_events() == binary_messages
 
 
 def test_create_pipeline_with_message_reader(

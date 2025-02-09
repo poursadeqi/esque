@@ -15,34 +15,34 @@ from tests.unit.io.conftest import DummyHandler
 
 
 def test_stop_at_temporary_end_of_stream_with_temporary_end(
-    binary_messages: List[Message], dummy_handler: DummyHandler
+    event_stream_messages: List[Message], dummy_handler: DummyHandler
 ):
-    dummy_handler.set_messages(messages=binary_messages)
+    dummy_handler.set_events(events=event_stream_messages)
     temporarily_ended_stream = stop_at_temporary_end_of_stream(dummy_handler.stream())
     dummy_handler.insert_temporary_end_of_stream(2)
-    assert list(skip_stream_events(temporarily_ended_stream)) == binary_messages[:2]
+    assert list(skip_stream_events(temporarily_ended_stream)) == event_stream_messages[:2]
 
 
 def test_stop_at_temporary_end_of_stream_with_permanent_end(
-    binary_messages: List[Message], dummy_handler: DummyHandler
+    messages: List[Message], dummy_handler: DummyHandler
 ):
-    dummy_handler.set_messages(messages=binary_messages)
+    dummy_handler.set_events(events=messages)
     temporarily_ended_stream = stop_at_temporary_end_of_stream(dummy_handler.stream())
-    assert list(skip_stream_events(temporarily_ended_stream)) == binary_messages
+    assert list(skip_stream_events(temporarily_ended_stream)) == messages
 
 
-def test_reading_until_count_reached(binary_messages: List[Message], dummy_handler: DummyHandler):
-    dummy_handler.set_messages(messages=binary_messages)
+def test_reading_until_count_reached(messages: List[Message], dummy_handler: DummyHandler):
+    dummy_handler.set_events(events=messages)
     dummy_handler.insert_temporary_end_of_stream(1)
     limit_ended_stream = stop_after_nth_message(2)(dummy_handler.stream())
-    assert list(skip_stream_events(limit_ended_stream)) == binary_messages[:2]
+    assert list(skip_stream_events(limit_ended_stream)) == messages[:2]
 
 
-def test_skip_messages_with_offset_below(binary_messages: List[Message], dummy_handler: DummyHandler):
-    dummy_handler.set_messages(messages=binary_messages)
+def test_skip_messages_with_offset_below(messages: List[Message], dummy_handler: DummyHandler):
+    dummy_handler.set_events(events=messages)
     stream_with_skipped_messages = skip_messages_with_offset_below(2)(dummy_handler.stream())
     assert list(skip_stream_events(stream_with_skipped_messages)) == [
-        msg for msg in binary_messages if msg.offset >= 2
+        msg for msg in messages if msg.offset >= 2
     ]
 
 
