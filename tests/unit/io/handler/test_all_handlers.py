@@ -17,16 +17,16 @@ def test_write_read_message(
         output_handler.write_message(msg)
     output_handler.close()
 
-    messages_retrieved: List[Message] = []
+    events_retrieved: List[StreamEvent] = []
     for _ in range(2):
         while True:
-            actual_message = input_handler.read_stream_event()
-            if isinstance(actual_message, Message):
+            actual_event = input_handler.read_stream_event()
+            if actual_event.message is not None:
                 break
-        messages_retrieved.append(actual_message)
+        events_retrieved.append(actual_event)
 
-    messages_retrieved.sort(key=attrgetter("timestamp"))
-    assert messages_retrieved == event_stream_messages[:2]
+    events_retrieved.sort(key=lambda event: event.message.timestamp)
+    assert events_retrieved == event_stream_messages[:2]
 
 
 @parametrize_with_cases("input_handler, output_handler")
@@ -57,8 +57,10 @@ def test_seek(event_stream_messages, input_handler: BaseHandler, output_handler:
     output_handler.close()
 
     input_handler.seek(seek_offset)
-    actual_messages = list(skip_stoppable_events(input_handler.stream()))
+    actual_messages = list(
+        skip_stoppable_events(stop_at_temporary_end_of_all_stream_partitions(input_handler.stream())))
     input_handler.close()
 
     actual_messages.sort(key=lambda event: event.message.timestamp)
-    assert actual_messages == [event for event in event_stream_messages if event.message.offset >= seek_offset]
+    expected = [event for event in event_stream_messages if event.message.offset >= seek_offset]
+    assert actual_messages == expected
