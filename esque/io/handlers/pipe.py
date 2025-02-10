@@ -1,7 +1,9 @@
+import base64
 import datetime
 import json
 from dataclasses import dataclass
-from typing import IO, Any, Dict, Optional
+from enum import Enum
+from typing import IO, Any, Dict, Optional, Union
 
 from rich.console import Console
 
@@ -12,10 +14,36 @@ from esque.io.messages import Message, MessageHeader
 from esque.io.stream_events import PermanentEndOfStream, StreamEvent, StoppableEvent
 
 
+class ByteEncoding(Enum):
+    BASE64 = "base64"
+    UTF_8 = "utf-8"
+    HEX = "hex"
+
+
 @dataclass()
 class PipeHandlerConfig(BaseHandlerConfig):
+    key_encoding: Union[str, ByteEncoding] = ByteEncoding.UTF_8.value
+    value_encoding: Union[str, ByteEncoding] = ByteEncoding.UTF_8.value
     file: Optional[IO[str]] = None
     pretty_print: bool = False
+
+    def _validate_fields(self) -> List[str]:
+        problems = super()._validate_fields()
+        try:
+            ByteEncoding(self.key_encoding)
+        except ValueError:
+            problems.append(
+                f"Invalid value for key_encoding: {self.key_encoding!r}. Valid values are: {', '.join(ByteEncoding)}"
+            )
+
+        try:
+            ByteEncoding(self.value_encoding)
+        except ValueError:
+            problems.append(
+                f"Invalid value for value_encoding: {self.value_encoding!r}. Valid values are: {', '.join(ByteEncoding)}"
+            )
+
+        return problems
 
 
 class PipeHandler(BaseHandler):
@@ -44,6 +72,8 @@ class PipeHandler(BaseHandler):
                     "headers": [{"key": h.key, "value": h.value} for h in event.message.headers],
                     "key_version": event.message.key_version,
                     "value_version": event.message.value_version,
+                    "keyenc": str(self.config.key_encoding),
+                    "valueenc": str(self.config.value_encoding),
                 }
             ),
             indent=2 if self.config.pretty_print else None,
@@ -69,11 +99,12 @@ class PipeHandler(BaseHandler):
                 "Error parsing JSON object from input. "
                 f"Make sure json objects are single-line and not pretty printed. Original Error: {e}"
             )
-
+        key_encoding = deserialized_object.get("keyenc", self.config.key_encoding)
+        value_encoding = deserialized_object.get("valueenc", self.config.value_encoding)
         return StreamEvent(
             Message(
-                key=self.config.read_serializer.key.deserialize(deserialized_object.get("key")),
-                value=self.config.read_serializer.value.deserialize(deserialized_object.get("value")),
+                key=extract(deserialized_object.get("key"), key_encoding),
+                value=extract(deserialized_object.get("value"), value_encoding),
                 offset=deserialized_object.get("offset", -1),
                 partition=deserialized_object.get("partition", -1),
                 timestamp=datetime.datetime.fromtimestamp(
@@ -90,3 +121,29 @@ class PipeHandler(BaseHandler):
 
     def close(self) -> None:
         pass  # stdin or stdout don't have to be closed
+
+
+def embed(input_value: Optional[bytes], encoding: Union[str, ByteEncoding]) -> Any:
+    encoding = ByteEncoding(encoding)
+
+    if input_value is None:
+        return None
+    if encoding == ByteEncoding.UTF_8:
+        return input_value.decode(encoding="UTF-8")
+    elif encoding == ByteEncoding.BASE64:
+        return base64.b64encode(input_value).decode(encoding="UTF-8")
+    elif encoding == ByteEncoding.HEX:
+        return input_value.hex()
+
+
+def extract(input_value: Optional[str], encoding: Union[str, ByteEncoding]) -> Optional[bytes]:
+    encoding = ByteEncoding(encoding)
+
+    if input_value is None:
+        return None
+    if encoding == ByteEncoding.UTF_8:
+        return input_value.encode(encoding="UTF-8")
+    elif encoding == ByteEncoding.BASE64:
+        return base64.b64decode(input_value.encode(encoding="UTF-8"))
+    elif encoding == ByteEncoding.HEX:
+        return bytes.fromhex(input_value)
