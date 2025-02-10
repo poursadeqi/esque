@@ -53,9 +53,9 @@ def serializer() -> JsonSerializer:
 
 
 def test_json_serializer(serializer: JsonSerializer):
-    actual_serialized_data: str = serializer.serialize(ORIGINAL_TEST_DATA[0])
+    actual_serialized_data: bytes = serializer.serialize(ORIGINAL_TEST_DATA[0])
     assert actual_serialized_data == EXPECTED_SERIALIZED_DATA[0]
-    actual_serialized_data: str = serializer.serialize(EXPECTED_DESERIALIZED_DATA[0])
+    actual_serialized_data: bytes = serializer.serialize(EXPECTED_DESERIALIZED_DATA[0])
     assert actual_serialized_data == EXPECTED_SERIALIZED_DATA[0]
 
     actual_deserialized_data = serializer.deserialize(EXPECTED_SERIALIZED_DATA[0])
@@ -63,7 +63,7 @@ def test_json_serializer(serializer: JsonSerializer):
 
 
 def test_json_serializer_many(serializer: JsonSerializer):
-    actual_serialized_data: List[str] = list(serializer.serialize(msg) for msg in ORIGINAL_TEST_DATA)
+    actual_serialized_data: List[bytes] = list(serializer.serialize(msg) for msg in ORIGINAL_TEST_DATA)
     assert actual_serialized_data == EXPECTED_SERIALIZED_DATA
 
     actual_deserialized_data: List[PrimaryTypes] = list(

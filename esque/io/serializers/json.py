@@ -20,13 +20,14 @@ class JsonSerializer(DataSerializer):
         super().__init__()
         self.config = config
 
-    def serialize(self, data: PrimaryTypes, **kwargs) -> Optional[str]:
+    def serialize(self, data: PrimaryTypes, **kwargs) -> Optional[bytes]:
         if data is None:
             return None
         indent = None
         if self.config.indent is not None:
             indent = int(self.config.indent)
-        return json.dumps(data, indent=indent, default=self.field_serializer)
+        return (json.dumps(data, indent=indent, default=self.field_serializer).
+                encode(encoding=self.config.encoding))
 
     def deserialize(self, raw_data: Optional[bytes]) -> Union[dict, None]:
         if raw_data is None:
