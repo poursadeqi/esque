@@ -31,7 +31,9 @@ class PipeHandler(BaseHandler):
         self._console.print_json(
             json.dumps(
                 {
-                    "key": self.config.write_serializer.key.serialize(event.message.key, event.message.key_version),
+                    "key": self.config.write_serializer.key.serialize(
+                        event.message.key, event.message.key_version
+                    ),
                     "value": self.config.write_serializer.value.serialize(
                         event.message.value, event.message.value_version
                     ),
