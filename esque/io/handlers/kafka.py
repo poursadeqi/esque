@@ -19,7 +19,6 @@ from esque.io.stream_events import EndOfStream, StreamEvent, TemporaryEndOfParti
 
 @dataclasses.dataclass
 class KafkaHandlerConfig(HandlerConfig):
-
     consumer_group_id: str = ESQUE_GROUP_ID
     send_timestamp: str = ""
 
@@ -72,7 +71,7 @@ class KafkaHandler(BaseHandler[KafkaHandlerConfig]):
                 {
                     "group.id": group_id,
                     "enable.partition.eof": True,
-                    "enable.auto.commit": False,
+                    "enable.auto.commit": True,
                     **config_instance.create_confluent_config(include_schema_registry=False),
                 }
             )
@@ -166,6 +165,11 @@ class KafkaHandler(BaseHandler[KafkaHandlerConfig]):
     def read_message(self) -> Union[BinaryMessage, StreamEvent]:
         if not self._assignment_created:
             self._assign()
+            topic_partitions = self._get_consumer().assignment()
+            target_time = int(datetime.datetime(2025, 2, 12, 0, 0, 0).timestamp() * 1000)
+            pt = [TopicPartition(self.config.topic_name, partition.partition, offset=target_time) for partition in topic_partitions]
+            offsets = self._get_consumer().offsets_for_times(partitions=pt)
+            [self._get_consumer().seek(offset) for offset in offsets]
 
         consumed_message: Optional[Message] = None
         while consumed_message is None:
@@ -200,7 +204,7 @@ class KafkaHandler(BaseHandler[KafkaHandlerConfig]):
 
     @staticmethod
     def _confluent_to_io_headers(
-        confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]],
+            confluent_headers: Optional[List[Tuple[str, Optional[bytes]]]],
     ) -> List[MessageHeader]:
         io_headers: List[MessageHeader] = []
 
