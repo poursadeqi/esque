@@ -48,7 +48,7 @@ requests = "^2.32"
 yamale = "6.0.0"
 toml = "^0.10.0"
 more-itertools = "^10.6"
-protobuf = "^5.29.3"
+protobuf = "^6.32.1"
 pre-commit = "^4.1.0"
 kafka-python-ng = "2.2.3"
 
